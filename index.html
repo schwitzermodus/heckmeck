@@ -43,812 +43,523 @@ const { useState, useRef, useCallback, useMemo } = React;
 const ACCENT   = "#a78bfa";
 const LESS_CLR = "#94a3b8";
 const MORE_CLR = "#fbbf24";
-const SWIPE_THRESHOLD = 60;  // reduced from 80 → faster swipe
-const SWIPE_EXIT_MS   = 150; // reduced from 280 → snappier transition
+const SWIPE_THRESHOLD = 60;
+const SWIPE_EXIT_MS   = 150;
 
-// ── TRANSLATIONS ─────────────────────────────────────────────────────────────
 const T = {
   de: {
-    appSubtitle:     "Swipe Edition",
-    tagline:         "Aussagen. Kein Richtig oder Falsch – antworte spontan.",
-    categoriesLabel: "Lebensbereiche",
-    namePlaceholder: "Dein Name (optional)",
-    startBtn:        "LOSLEGEN →",
-    swipeLeft:       "← trifft weniger zu",
-    swipeRight:      "trifft eher zu →",
-    orTap:           "oder Buttons tippen",
-    stampYes:        "TRIFFT ZU ✓",
-    stampNo:         "WENIGER ✗",
-    btnMore:         "trifft eher zu",
-    btnLess:         "trifft weniger zu",
-    btnUndo:         "↩ zurück",
-    resultTitle:     "Dein Ergebnis",
-    resultFor:       "Ergebnis für",
-    outOf:           "VON 10",
-    saveImg:         "📸 Als Bild speichern",
-    saving:          "⏳ Wird erstellt...",
-    undoLast:        "↩ Letzte Antwort",
-    byCategory:      "Nach Bereichen",
-    conventional:    "Konventionell",
-    freeSpirit:      "Freier Geist",
-    towardConv:      "→ eher konventionell",
-    towardFree:      "→ eher freier Geist",
-    ansMore:         "trifft eher zu",
-    ansLess:         "trifft weniger zu",
-    again:           "↺ Nochmal",
-    undoLastCorr:    "↩ Letzte Antwort korrigieren",
-    meter: [
-      { max:2,  label:"Freier Geist",              desc:"Du lebst stark nach eigenen Regeln und brauchst wenig externe Orientierung. Das gibt dir viel Freiheit und Unabhängigkeit.", color:"#60a5fa" },
-      { max:4,  label:"Eigenständig & Offen",      desc:"Du orientierst dich lieber an dir selbst als an Erwartungen anderer – und bist dabei offen für Neues.", color:"#34d399" },
-      { max:6,  label:"Ausgewogen",                desc:"Du vereinst Offenheit und Verlässlichkeit. Struktur und Spontaneität haben bei dir beide ihren Platz.", color:"#fbbf24" },
-      { max:8,  label:"Strukturiert & Verlässlich", desc:"Klare Regeln und bewährte Gewohnheiten geben dir Halt – und machen dich für andere berechenbar im positiven Sinne.", color:"#f97316" },
-      { max:10, label:"Konsequent Konventionell",  desc:"Du weißt, was du willst – und es entspricht weitgehend dem, was die Gesellschaft für richtig hält. Das schafft Stabilität.", color:"#e879f9" },
+    appSubtitle:"Swipe Edition",tagline:"Aussagen. Kein Richtig oder Falsch – antworte spontan.",
+    categoriesLabel:"Lebensbereiche",namePlaceholder:"Dein Name (optional)",startBtn:"LOSLEGEN →",
+    swipeLeft:"← trifft weniger zu",swipeRight:"trifft eher zu →",orTap:"oder Buttons tippen",
+    stampYes:"TRIFFT ZU ✓",stampNo:"WENIGER ✗",btnMore:"trifft eher zu",btnLess:"trifft weniger zu",
+    btnUndo:"↩ zurück",resultTitle:"Dein Ergebnis",resultFor:"Ergebnis für",outOf:"VON 10",
+    saveImg:"📸 Als Bild speichern",saving:"⏳ Wird erstellt...",undoLast:"↩ Letzte Antwort",
+    byCategory:"Nach Bereichen",conventional:"Konventionell",freeSpirit:"Freier Geist",
+    towardConv:"→ eher konventionell",towardFree:"→ eher freier Geist",
+    ansMore:"trifft eher zu",ansLess:"trifft weniger zu",again:"↺ Nochmal",
+    undoLastCorr:"↩ Letzte Antwort korrigieren",
+    allTypes:"Alle Typen im Vergleich",yourType:"Dein Typ",rangeLabel:"Wertebereich",
+    meter:[
+      {max:2, label:"Freier Geist",desc:"Du lebst stark nach eigenen Regeln und brauchst wenig externe Orientierung. Das gibt dir viel Freiheit und Unabhängigkeit.",color:"#60a5fa"},
+      {max:4, label:"Eigenständig & Offen",desc:"Du orientierst dich lieber an dir selbst als an Erwartungen anderer – und bist dabei offen für Neues.",color:"#34d399"},
+      {max:6, label:"Ausgewogen",desc:"Du vereinst Offenheit und Verlässlichkeit. Struktur und Spontaneität haben bei dir beide ihren Platz.",color:"#fbbf24"},
+      {max:8, label:"Strukturiert & Verlässlich",desc:"Klare Regeln und bewährte Gewohnheiten geben dir Halt – und machen dich für andere berechenbar im positiven Sinne.",color:"#f97316"},
+      {max:10,label:"Konsequent Konventionell",desc:"Du weißt, was du willst – und es entspricht weitgehend dem, was die Gesellschaft für richtig hält. Das schafft Stabilität.",color:"#e879f9"},
     ],
-    categories: [
-      { id:"wohnen",     label:"Wohnen & Alltag",        emoji:"🏠" },
-      { id:"urlaub",     label:"Urlaub & Reisen",         emoji:"✈️" },
-      { id:"ernaehrung", label:"Ernährung & Genuss",      emoji:"🍽️" },
-      { id:"hobbys",     label:"Hobbys & Interessen",     emoji:"🎯" },
-      { id:"lifestyle",  label:"Lifestyle & Mode",        emoji:"👗" },
-      { id:"beziehung",  label:"Beziehungen & Nähe",      emoji:"❤️" },
-      { id:"soziales",   label:"Soziales & Umfeld",       emoji:"👥" },
-      { id:"weltbild",   label:"Weltbild & Haltung",      emoji:"🌍" },
-      { id:"psyche",     label:"Selbstbild & Innenleben", emoji:"🧠" },
-      { id:"familie",    label:"Familie & Lebensziele",   emoji:"👨‍👩‍👧" },
+    categories:[
+      {id:"wohnen",label:"Wohnen & Alltag",emoji:"🏠"},{id:"urlaub",label:"Urlaub & Reisen",emoji:"✈️"},
+      {id:"ernaehrung",label:"Ernährung & Genuss",emoji:"🍽️"},{id:"hobbys",label:"Hobbys & Interessen",emoji:"🎯"},
+      {id:"lifestyle",label:"Lifestyle & Mode",emoji:"👗"},{id:"beziehung",label:"Beziehungen & Nähe",emoji:"❤️"},
+      {id:"soziales",label:"Soziales & Umfeld",emoji:"👥"},{id:"weltbild",label:"Weltbild & Haltung",emoji:"🌍"},
+      {id:"psyche",label:"Selbstbild & Innenleben",emoji:"🧠"},{id:"familie",label:"Familie & Lebensziele",emoji:"👨‍👩‍👧"},
     ],
-    questions: [
-      { id:"w1", cat:"wohnen",     reverse:false, text:"Wenn ich nach Hause komme und etwas liegt nicht an seinem Platz, fällt mir das sofort auf.",        example:"z.B. eine Tasse, die jemand stehen gelassen hat, oder Schuhe im Flur." },
-      { id:"w2", cat:"wohnen",     reverse:false, text:"Ein ordentliches Zuhause sagt für mich viel über einen Menschen aus.",                               example:"z.B. wenn du bei jemandem zu Besuch bist und dir unbewusst ein Urteil bildest." },
-      { id:"w3", cat:"wohnen",     reverse:true,  text:"Ich lasse Chaos gelegentlich einfach Chaos sein – das gehört für mich zum Leben dazu.",              example:"z.B. ein unaufgeräumtes Wochenende oder ein voller Schreibtisch mitten im Projekt." },
-      { id:"w4", cat:"wohnen",     reverse:false, text:"Grundregeln des Zusammenlebens zu respektieren ist mir wichtig.",                                    example:"z.B. Ruhezeiten einhalten, Gemeinschaftsflächen sauber lassen." },
-      { id:"u1", cat:"urlaub",     reverse:false, text:"Ein gelungener Urlaub beginnt für mich mit einer guten Planung.",                                    example:"z.B. Unterkunft, Aktivitäten und Restaurants im Voraus buchen." },
-      { id:"u2", cat:"urlaub",     reverse:false, text:"Ich reise gerne an Orte, die ich bereits kenne und schätze.",                                        example:"z.B. jedes Jahr denselben Ort am Meer oder dieselbe Hütte in den Bergen." },
-      { id:"u3", cat:"urlaub",     reverse:true,  text:"Die schönsten Reisemomente entstehen für mich oft aus dem Ungeplanten.",                             example:"z.B. ein zufällig gefundenes Restaurant oder ein spontaner Abstecher." },
-      { id:"u4", cat:"urlaub",     reverse:false, text:"Reisen in sehr fremde Kulturen empfinde ich eher als Anstrengung.",                                  example:"z.B. wenn Sprache, Essen oder Gewohnheiten sehr weit von deinen eigenen entfernt sind." },
-      { id:"e1", cat:"ernaehrung", reverse:false, text:"Im Restaurant bestelle ich meistens etwas, das ich bereits kenne und mag.",                          example:"z.B. immer das gleiche Gericht oder verlässlich auf Nummer sicher gehen." },
-      { id:"e2", cat:"ernaehrung", reverse:false, text:"Sehr strikte Ernährungsregeln anderer empfinde ich im Alltag als schwierig.",                        example:"z.B. wenn beim gemeinsamen Essen viele Ausnahmen oder Sonderwünsche berücksichtigt werden müssen." },
-      { id:"e3", cat:"ernaehrung", reverse:true,  text:"Ich probiere unbekannte Speisen spontan und ohne langes Überlegen.",                                 example:"z.B. Streetfood auf Reisen oder ein Gericht, das du nicht kennst und nicht identifizieren kannst." },
-      { id:"e4", cat:"ernaehrung", reverse:false, text:"Essen ist für mich vor allem Genuss und Gewohnheit – kein Lifestyle-Statement.",                     example:"z.B. du isst, was dir schmeckt, ohne es mit Identität oder Werten zu verknüpfen." },
-      { id:"h1", cat:"hobbys",     reverse:false, text:"Meine Hobbys sind in meinem Umfeld gut erklärbar.",                                                  example:"z.B. Sport, Kochen, Gartenarbeit – Dinge, die wenig Erklärung brauchen." },
-      { id:"h2", cat:"hobbys",     reverse:false, text:"Die Meinung anderer über meine Hobbys beeinflusst, ob ich sie ausübe.",                              example:"z.B. du würdest ein Hobby aufgeben oder verbergen, wenn es im Umfeld nicht gut ankommt." },
-      { id:"h3", cat:"hobbys",     reverse:true,  text:"Ich probiere neue Dinge aus, auch wenn ich keine Ahnung habe, ob sie mir liegen.",                   example:"z.B. ein Kurs, ein Instrument oder eine Sportart ohne vorherige Recherche." },
-      { id:"h4", cat:"hobbys",     reverse:false, text:"Ich bevorzuge Aktivitäten, bei denen ich klare Fortschritte messen kann.",                           example:"z.B. Laufzeiten verbessern, Levels abschließen oder Kurse mit Zertifikat." },
-      { id:"l1", cat:"lifestyle",  reverse:false, text:"Ich kleide mich für bestimmte Anlässe nach dem, was gesellschaftlich erwartet wird.",                example:"z.B. Anzug bei der Hochzeit, Sportkleidung im Fitnessstudio – ohne diese Regeln zu hinterfragen." },
-      { id:"l2", cat:"lifestyle",  reverse:false, text:"Mein Kleidungsstil soll nach außen einen bestimmten gepflegten Eindruck hinterlassen.",              example:"z.B. stets passende, aufeinander abgestimmte Outfits – nichts zu Schrillem oder Ungewöhnlichem." },
-      { id:"l3", cat:"lifestyle",  reverse:true,  text:"Ich kombiniere Kleidung gerne auf eine Art, die andere überrascht oder verwirrt.",                   example:"z.B. Muster mischen, ungewöhnliche Farbkombinationen oder Vintage mit Sportswear." },
-      { id:"l4", cat:"lifestyle",  reverse:false, text:"Beim Einkaufen halte ich mich eher an bewährte Marken und Produkte.",                                example:"z.B. immer dieselbe Waschmittelmarke, dasselbe Parfüm oder denselben Schuhtyp." },
-      { id:"r1", cat:"beziehung",  reverse:false, text:"Beziehungsmodelle, die sich sehr von meinem eigenen unterscheiden, sind für mich schwer nachzuvollziehen.", example:"z.B. offene Beziehungen, polyamore Konstellationen oder bewusst kinderlos Lebende." },
-      { id:"r2", cat:"beziehung",  reverse:false, text:"Sexualität gehört für mich in den privaten Bereich – öffentlich thematisiere ich sie selten.",       example:"z.B. du redest ungern offen darüber oder findest es fehl am Platz, wenn andere es tun." },
-      { id:"r3", cat:"beziehung",  reverse:true,  text:"Ungewöhnliche Beziehungs- oder Lebensmodelle finde ich grundsätzlich interessant.",                  example:"z.B. du fragst neugierig nach, anstatt dich davon abzugrenzen." },
-      { id:"r4", cat:"beziehung",  reverse:false, text:"Eine funktionierende Beziehung braucht für mich einen klaren gemeinsamen Rahmen.",                   example:"z.B. gemeinsame Regeln, Rollenverteilung oder ein gemeinsames Zukunftsbild." },
-      { id:"s1", cat:"soziales",   reverse:false, text:"Meine engsten Freunde teilen im Wesentlichen ähnliche Werte wie ich.",                               example:"z.B. ähnliche Einstellungen zu Familie, Arbeit oder Freizeit." },
-      { id:"s2", cat:"soziales",   reverse:false, text:"Menschen, die in meinem Umfeld sehr aus dem Rahmen fallen, begegne ich zunächst mit Zurückhaltung.", example:"z.B. jemand mit einem sehr anderen Lebensstil, ungewöhnlichem Auftreten oder extremen Ansichten." },
-      { id:"s3", cat:"soziales",   reverse:true,  text:"Ich pflege aktiv Freundschaften zu Menschen, die ganz anders denken als ich.",                       example:"z.B. verschiedene Altersgruppen, Hintergründe oder Weltanschauungen in deinem Freundeskreis." },
-      { id:"s4", cat:"soziales",   reverse:false, text:"Bestimmte Verhaltensweisen in der Öffentlichkeit können mich wirklich ärgern.",                      example:"z.B. lautes Telefonieren, Drängeln oder Musik ohne Kopfhörer." },
-      { id:"p1", cat:"weltbild",   reverse:false, text:"Gesellschaftliche Veränderungen beobachte ich erst eine Weile, bevor ich mir ein Urteil bilde.",     example:"z.B. neue Bewegungen, Trends oder politische Entwicklungen." },
-      { id:"p2", cat:"weltbild",   reverse:false, text:"Bestimmte Normen und Werte sind für mich die Grundlage eines funktionierenden Zusammenlebens.",      example:"z.B. Pünktlichkeit, Verlässlichkeit oder Respekt vor Eigentum." },
-      { id:"p3", cat:"weltbild",   reverse:true,  text:"Ich lasse mich durch gute Argumente auch von Positionen überzeugen, die meiner bisherigen Meinung widersprechen.", example:"z.B. du hast deine Meinung zu einem Thema nach einem Gespräch wirklich geändert." },
-      { id:"p4", cat:"weltbild",   reverse:false, text:"Zu viel gesellschaftliche Offenheit führt für mich irgendwann zu Orientierungslosigkeit.",           example:"z.B. wenn Normen und Rollen immer weiter aufgelöst werden und du das als Verlust empfindest." },
-      { id:"x1", cat:"psyche",     reverse:false, text:"Ich weiß ziemlich genau, wer ich bin und was ich will.",                                              example:"z.B. klare Vorstellungen von Beruf, Beziehung oder Lebensstil – wenig innere Ambivalenz." },
-      { id:"x2", cat:"psyche",     reverse:false, text:"Wenn andere Entscheidungen treffen, die ich für falsch halte, fällt mir Schweigen schwer.",           example:"z.B. Ratschläge geben oder Kritik äußern, auch wenn du nicht gefragt wirst." },
-      { id:"x3", cat:"psyche",     reverse:true,  text:"Ich habe schon eine Lebensphase erlebt, die mich grundlegend verändert hat.",                        example:"z.B. eine Krise, ein Umbruch oder eine Erfahrung, die dein Weltbild neu ausgerichtet hat." },
-      { id:"x4", cat:"psyche",     reverse:false, text:"Ich fühle mich am wohlsten, wenn ich weiß, was als Nächstes kommt.",                                 example:"z.B. feste Pläne, bekannte Abläufe oder überschaubare Situationen." },
-      { id:"f1", cat:"familie",    reverse:false, text:"Ich habe eine recht konkrete Vorstellung davon, wie mein Leben mit 60 aussehen soll.",                example:"z.B. Haus, Rente, Familie – ein klares inneres Bild der Zukunft." },
-      { id:"f2", cat:"familie",    reverse:false, text:"Die Meinung meiner Familie hat bei wichtigen Entscheidungen für mich ein gewisses Gewicht.",          example:"z.B. Berufswahl, Partnerschaft oder Wohnort." },
-      { id:"f3", cat:"familie",    reverse:true,  text:"Ich kann mir gut vorstellen, mein Leben ohne konkreten Plan radikal umzukrempeln.",                   example:"z.B. alles kündigen, umziehen oder einen völlig neuen Lebensweg einschlagen." },
-      { id:"f4", cat:"familie",    reverse:false, text:"Ein Leben ohne feste Partnerschaft oder eigene Familie wirkt auf mich irgendwie unvollständig.",      example:"z.B. du kannst dir für dich selbst kaum vorstellen, dauerhaft ohne diese Strukturen glücklich zu sein." },
+    questions:[
+      {id:"w1",cat:"wohnen",reverse:false,text:"Wenn ich nach Hause komme und etwas liegt nicht an seinem Platz, fällt mir das sofort auf.",example:"z.B. eine Tasse, die jemand stehen gelassen hat, oder Schuhe im Flur."},
+      {id:"w2",cat:"wohnen",reverse:false,text:"Ein ordentliches Zuhause sagt für mich viel über einen Menschen aus.",example:"z.B. wenn du bei jemandem zu Besuch bist und dir unbewusst ein Urteil bildest."},
+      {id:"w3",cat:"wohnen",reverse:true,text:"Ich lasse Chaos gelegentlich einfach Chaos sein – das gehört für mich zum Leben dazu.",example:"z.B. ein unaufgeräumtes Wochenende oder ein voller Schreibtisch mitten im Projekt."},
+      {id:"w4",cat:"wohnen",reverse:false,text:"Grundregeln des Zusammenlebens zu respektieren ist mir wichtig.",example:"z.B. Ruhezeiten einhalten, Gemeinschaftsflächen sauber lassen."},
+      {id:"u1",cat:"urlaub",reverse:false,text:"Ein gelungener Urlaub beginnt für mich mit einer guten Planung.",example:"z.B. Unterkunft, Aktivitäten und Restaurants im Voraus buchen."},
+      {id:"u2",cat:"urlaub",reverse:false,text:"Ich reise gerne an Orte, die ich bereits kenne und schätze.",example:"z.B. jedes Jahr denselben Ort am Meer oder dieselbe Hütte in den Bergen."},
+      {id:"u3",cat:"urlaub",reverse:true,text:"Die schönsten Reisemomente entstehen für mich oft aus dem Ungeplanten.",example:"z.B. ein zufällig gefundenes Restaurant oder ein spontaner Abstecher."},
+      {id:"u4",cat:"urlaub",reverse:false,text:"Reisen in sehr fremde Kulturen empfinde ich eher als Anstrengung.",example:"z.B. wenn Sprache, Essen oder Gewohnheiten sehr weit von deinen eigenen entfernt sind."},
+      {id:"e1",cat:"ernaehrung",reverse:false,text:"Im Restaurant bestelle ich meistens etwas, das ich bereits kenne und mag.",example:"z.B. immer das gleiche Gericht oder verlässlich auf Nummer sicher gehen."},
+      {id:"e2",cat:"ernaehrung",reverse:false,text:"Sehr strikte Ernährungsregeln anderer empfinde ich im Alltag als schwierig.",example:"z.B. wenn beim gemeinsamen Essen viele Ausnahmen oder Sonderwünsche berücksichtigt werden müssen."},
+      {id:"e3",cat:"ernaehrung",reverse:true,text:"Ich probiere unbekannte Speisen spontan und ohne langes Überlegen.",example:"z.B. Streetfood auf Reisen oder ein Gericht, das du nicht kennst und nicht identifizieren kannst."},
+      {id:"e4",cat:"ernaehrung",reverse:false,text:"Essen ist für mich vor allem Genuss und Gewohnheit – kein Lifestyle-Statement.",example:"z.B. du isst, was dir schmeckt, ohne es mit Identität oder Werten zu verknüpfen."},
+      {id:"h1",cat:"hobbys",reverse:false,text:"Meine Hobbys sind in meinem Umfeld gut erklärbar.",example:"z.B. Sport, Kochen, Gartenarbeit – Dinge, die wenig Erklärung brauchen."},
+      {id:"h2",cat:"hobbys",reverse:false,text:"Die Meinung anderer über meine Hobbys beeinflusst, ob ich sie ausübe.",example:"z.B. du würdest ein Hobby aufgeben oder verbergen, wenn es im Umfeld nicht gut ankommt."},
+      {id:"h3",cat:"hobbys",reverse:true,text:"Ich probiere neue Dinge aus, auch wenn ich keine Ahnung habe, ob sie mir liegen.",example:"z.B. ein Kurs, ein Instrument oder eine Sportart ohne vorherige Recherche."},
+      {id:"h4",cat:"hobbys",reverse:false,text:"Ich bevorzuge Aktivitäten, bei denen ich klare Fortschritte messen kann.",example:"z.B. Laufzeiten verbessern, Levels abschließen oder Kurse mit Zertifikat."},
+      {id:"l1",cat:"lifestyle",reverse:false,text:"Ich kleide mich für bestimmte Anlässe nach dem, was gesellschaftlich erwartet wird.",example:"z.B. Anzug bei der Hochzeit, Sportkleidung im Fitnessstudio – ohne diese Regeln zu hinterfragen."},
+      {id:"l2",cat:"lifestyle",reverse:false,text:"Mein Kleidungsstil soll nach außen einen bestimmten gepflegten Eindruck hinterlassen.",example:"z.B. stets passende, aufeinander abgestimmte Outfits – nichts zu Schrillem oder Ungewöhnlichem."},
+      {id:"l3",cat:"lifestyle",reverse:true,text:"Ich kombiniere Kleidung gerne auf eine Art, die andere überrascht oder verwirrt.",example:"z.B. Muster mischen, ungewöhnliche Farbkombinationen oder Vintage mit Sportswear."},
+      {id:"l4",cat:"lifestyle",reverse:false,text:"Beim Einkaufen halte ich mich eher an bewährte Marken und Produkte.",example:"z.B. immer dieselbe Waschmittelmarke, dasselbe Parfüm oder denselben Schuhtyp."},
+      {id:"r1",cat:"beziehung",reverse:false,text:"Beziehungsmodelle, die sich sehr von meinem eigenen unterscheiden, sind für mich schwer nachzuvollziehen.",example:"z.B. offene Beziehungen, polyamore Konstellationen oder bewusst kinderlos Lebende."},
+      {id:"r2",cat:"beziehung",reverse:false,text:"Sexualität gehört für mich in den privaten Bereich – öffentlich thematisiere ich sie selten.",example:"z.B. du redest ungern offen darüber oder findest es fehl am Platz, wenn andere es tun."},
+      {id:"r3",cat:"beziehung",reverse:true,text:"Ungewöhnliche Beziehungs- oder Lebensmodelle finde ich grundsätzlich interessant.",example:"z.B. du fragst neugierig nach, anstatt dich davon abzugrenzen."},
+      {id:"r4",cat:"beziehung",reverse:false,text:"Eine funktionierende Beziehung braucht für mich einen klaren gemeinsamen Rahmen.",example:"z.B. gemeinsame Regeln, Rollenverteilung oder ein gemeinsames Zukunftsbild."},
+      {id:"s1",cat:"soziales",reverse:false,text:"Meine engsten Freunde teilen im Wesentlichen ähnliche Werte wie ich.",example:"z.B. ähnliche Einstellungen zu Familie, Arbeit oder Freizeit."},
+      {id:"s2",cat:"soziales",reverse:false,text:"Menschen, die in meinem Umfeld sehr aus dem Rahmen fallen, begegne ich zunächst mit Zurückhaltung.",example:"z.B. jemand mit einem sehr anderen Lebensstil, ungewöhnlichem Auftreten oder extremen Ansichten."},
+      {id:"s3",cat:"soziales",reverse:true,text:"Ich pflege aktiv Freundschaften zu Menschen, die ganz anders denken als ich.",example:"z.B. verschiedene Altersgruppen, Hintergründe oder Weltanschauungen in deinem Freundeskreis."},
+      {id:"s4",cat:"soziales",reverse:false,text:"Bestimmte Verhaltensweisen in der Öffentlichkeit können mich wirklich ärgern.",example:"z.B. lautes Telefonieren, Drängeln oder Musik ohne Kopfhörer."},
+      {id:"p1",cat:"weltbild",reverse:false,text:"Gesellschaftliche Veränderungen beobachte ich erst eine Weile, bevor ich mir ein Urteil bilde.",example:"z.B. neue Bewegungen, Trends oder politische Entwicklungen."},
+      {id:"p2",cat:"weltbild",reverse:false,text:"Bestimmte Normen und Werte sind für mich die Grundlage eines funktionierenden Zusammenlebens.",example:"z.B. Pünktlichkeit, Verlässlichkeit oder Respekt vor Eigentum."},
+      {id:"p3",cat:"weltbild",reverse:true,text:"Ich lasse mich durch gute Argumente auch von Positionen überzeugen, die meiner bisherigen Meinung widersprechen.",example:"z.B. du hast deine Meinung zu einem Thema nach einem Gespräch wirklich geändert."},
+      {id:"p4",cat:"weltbild",reverse:false,text:"Zu viel gesellschaftliche Offenheit führt für mich irgendwann zu Orientierungslosigkeit.",example:"z.B. wenn Normen und Rollen immer weiter aufgelöst werden und du das als Verlust empfindest."},
+      {id:"x1",cat:"psyche",reverse:false,text:"Ich weiß ziemlich genau, wer ich bin und was ich will.",example:"z.B. klare Vorstellungen von Beruf, Beziehung oder Lebensstil – wenig innere Ambivalenz."},
+      {id:"x2",cat:"psyche",reverse:false,text:"Wenn andere Entscheidungen treffen, die ich für falsch halte, fällt mir Schweigen schwer.",example:"z.B. Ratschläge geben oder Kritik äußern, auch wenn du nicht gefragt wirst."},
+      {id:"x3",cat:"psyche",reverse:true,text:"Ich habe schon eine Lebensphase erlebt, die mich grundlegend verändert hat.",example:"z.B. eine Krise, ein Umbruch oder eine Erfahrung, die dein Weltbild neu ausgerichtet hat."},
+      {id:"x4",cat:"psyche",reverse:false,text:"Ich fühle mich am wohlsten, wenn ich weiß, was als Nächstes kommt.",example:"z.B. feste Pläne, bekannte Abläufe oder überschaubare Situationen."},
+      {id:"f1",cat:"familie",reverse:false,text:"Ich habe eine recht konkrete Vorstellung davon, wie mein Leben mit 60 aussehen soll.",example:"z.B. Haus, Rente, Familie – ein klares inneres Bild der Zukunft."},
+      {id:"f2",cat:"familie",reverse:false,text:"Die Meinung meiner Familie hat bei wichtigen Entscheidungen für mich ein gewisses Gewicht.",example:"z.B. Berufswahl, Partnerschaft oder Wohnort."},
+      {id:"f3",cat:"familie",reverse:true,text:"Ich kann mir gut vorstellen, mein Leben ohne konkreten Plan radikal umzukrempeln.",example:"z.B. alles kündigen, umziehen oder einen völlig neuen Lebensweg einschlagen."},
+      {id:"f4",cat:"familie",reverse:false,text:"Ein Leben ohne feste Partnerschaft oder eigene Familie wirkt auf mich irgendwie unvollständig.",example:"z.B. du kannst dir für dich selbst kaum vorstellen, dauerhaft ohne diese Strukturen glücklich zu sein."},
     ],
   },
-
   en: {
-    appSubtitle:     "Swipe Edition",
-    tagline:         "statements. No right or wrong – answer spontaneously.",
-    categoriesLabel: "Life areas",
-    namePlaceholder: "Your name (optional)",
-    startBtn:        "START →",
-    swipeLeft:       "← less like me",
-    swipeRight:      "more like me →",
-    orTap:           "or tap the buttons",
-    stampYes:        "LIKE ME ✓",
-    stampNo:         "LESS SO ✗",
-    btnMore:         "more like me",
-    btnLess:         "less like me",
-    btnUndo:         "↩ undo",
-    resultTitle:     "Your Result",
-    resultFor:       "Result for",
-    outOf:           "OUT OF 10",
-    saveImg:         "📸 Save as image",
-    saving:          "⏳ Creating...",
-    undoLast:        "↩ Last answer",
-    byCategory:      "By category",
-    conventional:    "Conventional",
-    freeSpirit:      "Free spirit",
-    towardConv:      "→ more conventional",
-    towardFree:      "→ more free spirit",
-    ansMore:         "more like me",
-    ansLess:         "less like me",
-    again:           "↺ Try again",
-    undoLastCorr:    "↩ Correct last answer",
-    meter: [
-      { max:2,  label:"Free Spirit",              desc:"You live largely by your own rules and need little external orientation. That gives you a lot of freedom and independence.", color:"#60a5fa" },
-      { max:4,  label:"Independent & Open",       desc:"You prefer to follow your own compass rather than others' expectations – and stay open to new things.", color:"#34d399" },
-      { max:6,  label:"Balanced",                 desc:"You combine openness and reliability. Structure and spontaneity both have their place in your life.", color:"#fbbf24" },
-      { max:8,  label:"Structured & Reliable",    desc:"Clear rules and established habits give you stability – and make you dependably predictable in a positive way.", color:"#f97316" },
-      { max:10, label:"Consistently Conventional",desc:"You know what you want – and it largely aligns with what society considers right. That creates reliability.", color:"#e879f9" },
+    appSubtitle:"Swipe Edition",tagline:"statements. No right or wrong – answer spontaneously.",
+    categoriesLabel:"Life areas",namePlaceholder:"Your name (optional)",startBtn:"START →",
+    swipeLeft:"← less like me",swipeRight:"more like me →",orTap:"or tap the buttons",
+    stampYes:"LIKE ME ✓",stampNo:"LESS SO ✗",btnMore:"more like me",btnLess:"less like me",
+    btnUndo:"↩ undo",resultTitle:"Your Result",resultFor:"Result for",outOf:"OUT OF 10",
+    saveImg:"📸 Save as image",saving:"⏳ Creating...",undoLast:"↩ Last answer",
+    byCategory:"By category",conventional:"Conventional",freeSpirit:"Free spirit",
+    towardConv:"→ more conventional",towardFree:"→ more free spirit",
+    ansMore:"more like me",ansLess:"less like me",again:"↺ Try again",
+    undoLastCorr:"↩ Correct last answer",
+    allTypes:"All types compared",yourType:"Your type",rangeLabel:"Score range",
+    meter:[
+      {max:2, label:"Free Spirit",desc:"You live largely by your own rules and need little external orientation. That gives you a lot of freedom and independence.",color:"#60a5fa"},
+      {max:4, label:"Independent & Open",desc:"You prefer to follow your own compass rather than others' expectations – and stay open to new things.",color:"#34d399"},
+      {max:6, label:"Balanced",desc:"You combine openness and reliability. Structure and spontaneity both have their place in your life.",color:"#fbbf24"},
+      {max:8, label:"Structured & Reliable",desc:"Clear rules and established habits give you stability – and make you dependably predictable in a positive way.",color:"#f97316"},
+      {max:10,label:"Consistently Conventional",desc:"You know what you want – and it largely aligns with what society considers right. That creates reliability.",color:"#e879f9"},
     ],
-    categories: [
-      { id:"wohnen",     label:"Home & Daily Life",    emoji:"🏠" },
-      { id:"urlaub",     label:"Travel & Holidays",    emoji:"✈️" },
-      { id:"ernaehrung", label:"Food & Enjoyment",     emoji:"🍽️" },
-      { id:"hobbys",     label:"Hobbies & Interests",  emoji:"🎯" },
-      { id:"lifestyle",  label:"Lifestyle & Fashion",  emoji:"👗" },
-      { id:"beziehung",  label:"Relationships",        emoji:"❤️" },
-      { id:"soziales",   label:"Social & Environment", emoji:"👥" },
-      { id:"weltbild",   label:"Worldview & Values",   emoji:"🌍" },
-      { id:"psyche",     label:"Self & Inner Life",    emoji:"🧠" },
-      { id:"familie",    label:"Family & Life Goals",  emoji:"👨‍👩‍👧" },
+    categories:[
+      {id:"wohnen",label:"Home & Daily Life",emoji:"🏠"},{id:"urlaub",label:"Travel & Holidays",emoji:"✈️"},
+      {id:"ernaehrung",label:"Food & Enjoyment",emoji:"🍽️"},{id:"hobbys",label:"Hobbies & Interests",emoji:"🎯"},
+      {id:"lifestyle",label:"Lifestyle & Fashion",emoji:"👗"},{id:"beziehung",label:"Relationships",emoji:"❤️"},
+      {id:"soziales",label:"Social & Environment",emoji:"👥"},{id:"weltbild",label:"Worldview & Values",emoji:"🌍"},
+      {id:"psyche",label:"Self & Inner Life",emoji:"🧠"},{id:"familie",label:"Family & Life Goals",emoji:"👨‍👩‍👧"},
     ],
-    questions: [
-      { id:"w1", cat:"wohnen",     reverse:false, text:"When I come home and something is out of place, I notice it immediately.",                            example:"e.g. a cup someone left out, or shoes in the hallway." },
-      { id:"w2", cat:"wohnen",     reverse:false, text:"A tidy home says a lot about a person, in my view.",                                                 example:"e.g. when visiting someone and forming an unconscious impression." },
-      { id:"w3", cat:"wohnen",     reverse:true,  text:"I sometimes just let chaos be chaos – it's part of life for me.",                                    example:"e.g. a messy weekend or a cluttered desk in the middle of a project." },
-      { id:"w4", cat:"wohnen",     reverse:false, text:"Respecting basic rules of living together is important to me.",                                       example:"e.g. keeping quiet hours, leaving shared spaces clean." },
-      { id:"u1", cat:"urlaub",     reverse:false, text:"A good holiday starts with solid planning for me.",                                                   example:"e.g. booking accommodation, activities and restaurants in advance." },
-      { id:"u2", cat:"urlaub",     reverse:false, text:"I enjoy going back to places I already know and love.",                                               example:"e.g. the same beach every year or the same mountain cabin." },
-      { id:"u3", cat:"urlaub",     reverse:true,  text:"The best travel moments often come from the unplanned.",                                             example:"e.g. a randomly found restaurant or a spontaneous detour." },
-      { id:"u4", cat:"urlaub",     reverse:false, text:"Travelling to very foreign cultures feels more exhausting than enriching to me.",                    example:"e.g. when language, food or customs are very far from your own." },
-      { id:"e1", cat:"ernaehrung", reverse:false, text:"In restaurants I usually order something I already know and like.",                                   example:"e.g. always the same dish, or playing it safe reliably." },
-      { id:"e2", cat:"ernaehrung", reverse:false, text:"Strict dietary rules in others can feel difficult in everyday situations.",                           example:"e.g. when many exceptions need to be accommodated at a shared meal." },
-      { id:"e3", cat:"ernaehrung", reverse:true,  text:"I try unfamiliar food spontaneously, without thinking twice.",                                        example:"e.g. street food abroad or a dish you can't identify." },
-      { id:"e4", cat:"ernaehrung", reverse:false, text:"Food is primarily pleasure and habit for me – not a lifestyle statement.",                            example:"e.g. eating what tastes good, without linking it to identity or values." },
-      { id:"h1", cat:"hobbys",     reverse:false, text:"My hobbies are easy to explain to people around me.",                                                 example:"e.g. sport, cooking, gardening – things that need little explanation." },
-      { id:"h2", cat:"hobbys",     reverse:false, text:"What others think of my hobbies influences whether I pursue them.",                                  example:"e.g. you'd give up or hide a hobby if it wasn't well received." },
-      { id:"h3", cat:"hobbys",     reverse:true,  text:"I try new things even when I have no idea whether I'll enjoy them.",                                  example:"e.g. a course, instrument or sport without prior research." },
-      { id:"h4", cat:"hobbys",     reverse:false, text:"I prefer activities where I can measure clear progress.",                                             example:"e.g. improving run times, completing levels, or certified courses." },
-      { id:"l1", cat:"lifestyle",  reverse:false, text:"I dress for occasions according to what is socially expected.",                                       example:"e.g. a suit at a wedding, sportswear at the gym – without questioning these norms." },
-      { id:"l2", cat:"lifestyle",  reverse:false, text:"My style should project a certain neat, polished impression.",                                        example:"e.g. always coordinated outfits – nothing too bold or unusual." },
-      { id:"l3", cat:"lifestyle",  reverse:true,  text:"I enjoy combining clothes in ways that surprise or confuse others.",                                  example:"e.g. mixing patterns, unusual colour combinations, or vintage with sportswear." },
-      { id:"l4", cat:"lifestyle",  reverse:false, text:"When shopping I stick to tried and trusted brands and products.",                                     example:"e.g. always the same detergent brand, same perfume, same shoe style." },
-      { id:"r1", cat:"beziehung",  reverse:false, text:"Relationship models very different from my own are hard for me to understand.",                       example:"e.g. open relationships, polyamory, or consciously child-free living." },
-      { id:"r2", cat:"beziehung",  reverse:false, text:"Sexuality belongs in the private sphere for me – I rarely discuss it publicly.",                     example:"e.g. you prefer not to talk openly about it, or find it out of place when others do." },
-      { id:"r3", cat:"beziehung",  reverse:true,  text:"I find unconventional relationship or life models genuinely interesting.",                            example:"e.g. you ask curious questions rather than distancing yourself." },
-      { id:"r4", cat:"beziehung",  reverse:false, text:"A working relationship needs a clear shared framework for me.",                                       example:"e.g. shared rules, role divisions, or a common vision of the future." },
-      { id:"s1", cat:"soziales",   reverse:false, text:"My closest friends broadly share similar values to mine.",                                            example:"e.g. similar views on family, work or leisure." },
-      { id:"s2", cat:"soziales",   reverse:false, text:"I approach people who stand out strongly in my circle with initial caution.",                         example:"e.g. someone with a very different lifestyle, unusual appearance or extreme views." },
-      { id:"s3", cat:"soziales",   reverse:true,  text:"I actively maintain friendships with people who think very differently from me.",                     example:"e.g. different age groups, backgrounds or worldviews in your circle." },
-      { id:"s4", cat:"soziales",   reverse:false, text:"Certain behaviours in public genuinely annoy me.",                                                   example:"e.g. loud phone calls, queue-jumping, or music without headphones." },
-      { id:"p1", cat:"weltbild",   reverse:false, text:"I observe social changes for a while before forming an opinion.",                                     example:"e.g. new movements, trends or political developments." },
-      { id:"p2", cat:"weltbild",   reverse:false, text:"Certain norms and values are the foundation of a functioning society, in my view.",                  example:"e.g. punctuality, reliability or respect for property." },
-      { id:"p3", cat:"weltbild",   reverse:true,  text:"Good arguments can genuinely change my mind, even on positions I previously held.",                  example:"e.g. you've actually changed your view after a conversation." },
-      { id:"p4", cat:"weltbild",   reverse:false, text:"Too much societal openness eventually leads to disorientation, in my view.",                         example:"e.g. when norms and roles dissolve further and you experience that as a loss." },
-      { id:"x1", cat:"psyche",     reverse:false, text:"I know fairly well who I am and what I want.",                                                        example:"e.g. clear ideas about career, relationships or lifestyle – little inner ambivalence." },
-      { id:"x2", cat:"psyche",     reverse:false, text:"When others make decisions I consider wrong, staying quiet is hard for me.",                          example:"e.g. offering advice or criticism even when not asked." },
-      { id:"x3", cat:"psyche",     reverse:true,  text:"I've been through a life phase that fundamentally changed me.",                                       example:"e.g. a crisis, upheaval or experience that reshaped your worldview." },
-      { id:"x4", cat:"psyche",     reverse:false, text:"I feel most at ease when I know what's coming next.",                                                 example:"e.g. fixed plans, familiar routines or manageable situations." },
-      { id:"f1", cat:"familie",    reverse:false, text:"I have a fairly concrete picture of what my life should look like at 60.",                            example:"e.g. house, pension, family – a clear inner image of the future." },
-      { id:"f2", cat:"familie",    reverse:false, text:"My family's opinion carries some weight in important decisions.",                                      example:"e.g. career choice, relationship or where to live." },
-      { id:"f3", cat:"familie",    reverse:true,  text:"I can easily imagine radically changing my life without a concrete plan.",                            example:"e.g. quitting everything, moving, or taking a completely new path." },
-      { id:"f4", cat:"familie",    reverse:false, text:"A life without a steady partner or own family feels somehow incomplete to me.",                       example:"e.g. you can barely imagine being permanently happy without these structures." },
+    questions:[
+      {id:"w1",cat:"wohnen",reverse:false,text:"When I come home and something is out of place, I notice it immediately.",example:"e.g. a cup someone left out, or shoes in the hallway."},
+      {id:"w2",cat:"wohnen",reverse:false,text:"A tidy home says a lot about a person, in my view.",example:"e.g. when visiting someone and forming an unconscious impression."},
+      {id:"w3",cat:"wohnen",reverse:true,text:"I sometimes just let chaos be chaos – it's part of life for me.",example:"e.g. a messy weekend or a cluttered desk in the middle of a project."},
+      {id:"w4",cat:"wohnen",reverse:false,text:"Respecting basic rules of living together is important to me.",example:"e.g. keeping quiet hours, leaving shared spaces clean."},
+      {id:"u1",cat:"urlaub",reverse:false,text:"A good holiday starts with solid planning for me.",example:"e.g. booking accommodation, activities and restaurants in advance."},
+      {id:"u2",cat:"urlaub",reverse:false,text:"I enjoy going back to places I already know and love.",example:"e.g. the same beach every year or the same mountain cabin."},
+      {id:"u3",cat:"urlaub",reverse:true,text:"The best travel moments often come from the unplanned.",example:"e.g. a randomly found restaurant or a spontaneous detour."},
+      {id:"u4",cat:"urlaub",reverse:false,text:"Travelling to very foreign cultures feels more exhausting than enriching to me.",example:"e.g. when language, food or customs are very far from your own."},
+      {id:"e1",cat:"ernaehrung",reverse:false,text:"In restaurants I usually order something I already know and like.",example:"e.g. always the same dish, or playing it safe reliably."},
+      {id:"e2",cat:"ernaehrung",reverse:false,text:"Strict dietary rules in others can feel difficult in everyday situations.",example:"e.g. when many exceptions need to be accommodated at a shared meal."},
+      {id:"e3",cat:"ernaehrung",reverse:true,text:"I try unfamiliar food spontaneously, without thinking twice.",example:"e.g. street food abroad or a dish you can't identify."},
+      {id:"e4",cat:"ernaehrung",reverse:false,text:"Food is primarily pleasure and habit for me – not a lifestyle statement.",example:"e.g. eating what tastes good, without linking it to identity or values."},
+      {id:"h1",cat:"hobbys",reverse:false,text:"My hobbies are easy to explain to people around me.",example:"e.g. sport, cooking, gardening – things that need little explanation."},
+      {id:"h2",cat:"hobbys",reverse:false,text:"What others think of my hobbies influences whether I pursue them.",example:"e.g. you'd give up or hide a hobby if it wasn't well received."},
+      {id:"h3",cat:"hobbys",reverse:true,text:"I try new things even when I have no idea whether I'll enjoy them.",example:"e.g. a course, instrument or sport without prior research."},
+      {id:"h4",cat:"hobbys",reverse:false,text:"I prefer activities where I can measure clear progress.",example:"e.g. improving run times, completing levels, or certified courses."},
+      {id:"l1",cat:"lifestyle",reverse:false,text:"I dress for occasions according to what is socially expected.",example:"e.g. a suit at a wedding, sportswear at the gym – without questioning these norms."},
+      {id:"l2",cat:"lifestyle",reverse:false,text:"My style should project a certain neat, polished impression.",example:"e.g. always coordinated outfits – nothing too bold or unusual."},
+      {id:"l3",cat:"lifestyle",reverse:true,text:"I enjoy combining clothes in ways that surprise or confuse others.",example:"e.g. mixing patterns, unusual colour combinations, or vintage with sportswear."},
+      {id:"l4",cat:"lifestyle",reverse:false,text:"When shopping I stick to tried and trusted brands and products.",example:"e.g. always the same detergent brand, same perfume, same shoe style."},
+      {id:"r1",cat:"beziehung",reverse:false,text:"Relationship models very different from my own are hard for me to understand.",example:"e.g. open relationships, polyamory, or consciously child-free living."},
+      {id:"r2",cat:"beziehung",reverse:false,text:"Sexuality belongs in the private sphere for me – I rarely discuss it publicly.",example:"e.g. you prefer not to talk openly about it, or find it out of place when others do."},
+      {id:"r3",cat:"beziehung",reverse:true,text:"I find unconventional relationship or life models genuinely interesting.",example:"e.g. you ask curious questions rather than distancing yourself."},
+      {id:"r4",cat:"beziehung",reverse:false,text:"A working relationship needs a clear shared framework for me.",example:"e.g. shared rules, role divisions, or a common vision of the future."},
+      {id:"s1",cat:"soziales",reverse:false,text:"My closest friends broadly share similar values to mine.",example:"e.g. similar views on family, work or leisure."},
+      {id:"s2",cat:"soziales",reverse:false,text:"I approach people who stand out strongly in my circle with initial caution.",example:"e.g. someone with a very different lifestyle, unusual appearance or extreme views."},
+      {id:"s3",cat:"soziales",reverse:true,text:"I actively maintain friendships with people who think very differently from me.",example:"e.g. different age groups, backgrounds or worldviews in your circle."},
+      {id:"s4",cat:"soziales",reverse:false,text:"Certain behaviours in public genuinely annoy me.",example:"e.g. loud phone calls, queue-jumping, or music without headphones."},
+      {id:"p1",cat:"weltbild",reverse:false,text:"I observe social changes for a while before forming an opinion.",example:"e.g. new movements, trends or political developments."},
+      {id:"p2",cat:"weltbild",reverse:false,text:"Certain norms and values are the foundation of a functioning society, in my view.",example:"e.g. punctuality, reliability or respect for property."},
+      {id:"p3",cat:"weltbild",reverse:true,text:"Good arguments can genuinely change my mind, even on positions I previously held.",example:"e.g. you've actually changed your view after a conversation."},
+      {id:"p4",cat:"weltbild",reverse:false,text:"Too much societal openness eventually leads to disorientation, in my view.",example:"e.g. when norms and roles dissolve further and you experience that as a loss."},
+      {id:"x1",cat:"psyche",reverse:false,text:"I know fairly well who I am and what I want.",example:"e.g. clear ideas about career, relationships or lifestyle – little inner ambivalence."},
+      {id:"x2",cat:"psyche",reverse:false,text:"When others make decisions I consider wrong, staying quiet is hard for me.",example:"e.g. offering advice or criticism even when not asked."},
+      {id:"x3",cat:"psyche",reverse:true,text:"I've been through a life phase that fundamentally changed me.",example:"e.g. a crisis, upheaval or experience that reshaped your worldview."},
+      {id:"x4",cat:"psyche",reverse:false,text:"I feel most at ease when I know what's coming next.",example:"e.g. fixed plans, familiar routines or manageable situations."},
+      {id:"f1",cat:"familie",reverse:false,text:"I have a fairly concrete picture of what my life should look like at 60.",example:"e.g. house, pension, family – a clear inner image of the future."},
+      {id:"f2",cat:"familie",reverse:false,text:"My family's opinion carries some weight in important decisions.",example:"e.g. career choice, relationship or where to live."},
+      {id:"f3",cat:"familie",reverse:true,text:"I can easily imagine radically changing my life without a concrete plan.",example:"e.g. quitting everything, moving, or taking a completely new path."},
+      {id:"f4",cat:"familie",reverse:false,text:"A life without a steady partner or own family feels somehow incomplete to me.",example:"e.g. you can barely imagine being permanently happy without these structures."},
     ],
   },
-
   no: {
-    appSubtitle:     "Swipe-utgave",
-    tagline:         "påstander. Ingen rett eller galt – svar spontant.",
-    categoriesLabel: "Livsområder",
-    namePlaceholder: "Ditt navn (valgfritt)",
-    startBtn:        "START →",
-    swipeLeft:       "← stemmer mindre",
-    swipeRight:      "stemmer mer →",
-    orTap:           "eller trykk på knappene",
-    stampYes:        "STEMMER ✓",
-    stampNo:         "STEMMER MINDRE ✗",
-    btnMore:         "stemmer mer",
-    btnLess:         "stemmer mindre",
-    btnUndo:         "↩ angre",
-    resultTitle:     "Ditt resultat",
-    resultFor:       "Resultat for",
-    outOf:           "AV 10",
-    saveImg:         "📸 Lagre som bilde",
-    saving:          "⏳ Oppretter...",
-    undoLast:        "↩ Siste svar",
-    byCategory:      "Etter kategori",
-    conventional:    "Konvensjonell",
-    freeSpirit:      "Fri sjel",
-    towardConv:      "→ mer konvensjonell",
-    towardFree:      "→ mer fri sjel",
-    ansMore:         "stemmer mer",
-    ansLess:         "stemmer mindre",
-    again:           "↺ Prøv igjen",
-    undoLastCorr:    "↩ Korriger siste svar",
-    meter: [
-      { max:2,  label:"Fri sjel",                 desc:"Du lever i stor grad etter dine egne regler og trenger lite ekstern orientering. Det gir deg mye frihet og uavhengighet.", color:"#60a5fa" },
-      { max:4,  label:"Selvstendig & Åpen",        desc:"Du foretrekker å følge din egen kompass fremfor andres forventninger – og er åpen for nye ting.", color:"#34d399" },
-      { max:6,  label:"Balansert",                 desc:"Du kombinerer åpenhet og pålitelighet. Struktur og spontanitet har begge sin plass i livet ditt.", color:"#fbbf24" },
-      { max:8,  label:"Strukturert & Pålitelig",   desc:"Klare regler og innarbeidede vaner gir deg stabilitet – og gjør deg forutsigbar på en positiv måte.", color:"#f97316" },
-      { max:10, label:"Konsekvent Konvensjonell",  desc:"Du vet hva du vil – og det samsvarer i stor grad med det samfunnet anser som riktig. Det skaper trygghet.", color:"#e879f9" },
+    appSubtitle:"Swipe-utgave",tagline:"påstander. Ingen rett eller galt – svar spontant.",
+    categoriesLabel:"Livsområder",namePlaceholder:"Ditt navn (valgfritt)",startBtn:"START →",
+    swipeLeft:"← stemmer mindre",swipeRight:"stemmer mer →",orTap:"eller trykk på knappene",
+    stampYes:"STEMMER ✓",stampNo:"STEMMER MINDRE ✗",btnMore:"stemmer mer",btnLess:"stemmer mindre",
+    btnUndo:"↩ angre",resultTitle:"Ditt resultat",resultFor:"Resultat for",outOf:"AV 10",
+    saveImg:"📸 Lagre som bilde",saving:"⏳ Oppretter...",undoLast:"↩ Siste svar",
+    byCategory:"Etter kategori",conventional:"Konvensjonell",freeSpirit:"Fri sjel",
+    towardConv:"→ mer konvensjonell",towardFree:"→ mer fri sjel",
+    ansMore:"stemmer mer",ansLess:"stemmer mindre",again:"↺ Prøv igjen",
+    undoLastCorr:"↩ Korriger siste svar",
+    allTypes:"Alle typer sammenlignet",yourType:"Din type",rangeLabel:"Poengområde",
+    meter:[
+      {max:2, label:"Fri sjel",desc:"Du lever i stor grad etter dine egne regler og trenger lite ekstern orientering. Det gir deg mye frihet og uavhengighet.",color:"#60a5fa"},
+      {max:4, label:"Selvstendig & Åpen",desc:"Du foretrekker å følge din egen kompass fremfor andres forventninger – og er åpen for nye ting.",color:"#34d399"},
+      {max:6, label:"Balansert",desc:"Du kombinerer åpenhet og pålitelighet. Struktur og spontanitet har begge sin plass i livet ditt.",color:"#fbbf24"},
+      {max:8, label:"Strukturert & Pålitelig",desc:"Klare regler og innarbeidede vaner gir deg stabilitet – og gjør deg forutsigbar på en positiv måte.",color:"#f97316"},
+      {max:10,label:"Konsekvent Konvensjonell",desc:"Du vet hva du vil – og det samsvarer i stor grad med det samfunnet anser som riktig. Det skaper trygghet.",color:"#e879f9"},
     ],
-    categories: [
-      { id:"wohnen",     label:"Hjem & Hverdag",         emoji:"🏠" },
-      { id:"urlaub",     label:"Reise & Ferie",           emoji:"✈️" },
-      { id:"ernaehrung", label:"Mat & Nytelse",           emoji:"🍽️" },
-      { id:"hobbys",     label:"Hobbyer & Interesser",   emoji:"🎯" },
-      { id:"lifestyle",  label:"Livsstil & Mote",         emoji:"👗" },
-      { id:"beziehung",  label:"Relasjoner & Nærhet",    emoji:"❤️" },
-      { id:"soziales",   label:"Sosialt & Omgivelser",   emoji:"👥" },
-      { id:"weltbild",   label:"Verdensanskuelse",        emoji:"🌍" },
-      { id:"psyche",     label:"Selvbilde & Indre liv",   emoji:"🧠" },
-      { id:"familie",    label:"Familie & Livsmål",       emoji:"👨‍👩‍👧" },
+    categories:[
+      {id:"wohnen",label:"Hjem & Hverdag",emoji:"🏠"},{id:"urlaub",label:"Reise & Ferie",emoji:"✈️"},
+      {id:"ernaehrung",label:"Mat & Nytelse",emoji:"🍽️"},{id:"hobbys",label:"Hobbyer & Interesser",emoji:"🎯"},
+      {id:"lifestyle",label:"Livsstil & Mote",emoji:"👗"},{id:"beziehung",label:"Relasjoner & Nærhet",emoji:"❤️"},
+      {id:"soziales",label:"Sosialt & Omgivelser",emoji:"👥"},{id:"weltbild",label:"Verdensanskuelse",emoji:"🌍"},
+      {id:"psyche",label:"Selvbilde & Indre liv",emoji:"🧠"},{id:"familie",label:"Familie & Livsmål",emoji:"👨‍👩‍👧"},
     ],
-    questions: [
-      { id:"w1", cat:"wohnen",     reverse:false, text:"Når jeg kommer hjem og noe er ute av plass, legger jeg det merke til med en gang.",                  example:"f.eks. en kopp noen har glemt, eller sko i gangen." },
-      { id:"w2", cat:"wohnen",     reverse:false, text:"Et ryddig hjem sier mye om en person, etter min mening.",                                            example:"f.eks. når du besøker noen og danner deg et ubevisst inntrykk." },
-      { id:"w3", cat:"wohnen",     reverse:true,  text:"Jeg lar kaos bare være kaos innimellom – det hører livet til.",                                      example:"f.eks. en rotete helg eller et overfylt skrivebord midt i et prosjekt." },
-      { id:"w4", cat:"wohnen",     reverse:false, text:"Det er viktig for meg å respektere grunnleggende regler for samliv.",                                 example:"f.eks. holde ro-tider, holde fellesarealer ryddige." },
-      { id:"u1", cat:"urlaub",     reverse:false, text:"En vellykket ferie starter med god planlegging for meg.",                                             example:"f.eks. booke overnatting, aktiviteter og restauranter på forhånd." },
-      { id:"u2", cat:"urlaub",     reverse:false, text:"Jeg reiser gjerne til steder jeg allerede kjenner og setter pris på.",                               example:"f.eks. samme strand hvert år eller samme fjellhytte." },
-      { id:"u3", cat:"urlaub",     reverse:true,  text:"De beste reiseopplevelsene oppstår ofte fra det uplanlagte for meg.",                                example:"f.eks. en tilfeldig funnet restaurant eller en spontan omvei." },
-      { id:"u4", cat:"urlaub",     reverse:false, text:"Å reise til veldig fremmede kulturer opplever jeg mer som slitsomt enn berikende.",                 example:"f.eks. når språk, mat eller skikker er veldig annerledes enn dine egne." },
-      { id:"e1", cat:"ernaehrung", reverse:false, text:"På restaurant bestiller jeg som regel noe jeg allerede kjenner og liker.",                           example:"f.eks. alltid samme rett, eller spille det trygt." },
-      { id:"e2", cat:"ernaehrung", reverse:false, text:"Strenge kostholdsregler hos andre kan kjennes vanskelig i hverdagen.",                               example:"f.eks. når mange unntak må tas hensyn til ved et felles måltid." },
-      { id:"e3", cat:"ernaehrung", reverse:true,  text:"Jeg prøver ukjente matretter spontant, uten å tenke meg om.",                                        example:"f.eks. gatemat på reise eller en rett du ikke kjenner igjen." },
-      { id:"e4", cat:"ernaehrung", reverse:false, text:"Mat er primært nytelse og vane for meg – ikke et livsstilsutsagn.",                                  example:"f.eks. spise det som smaker godt, uten å knytte det til identitet eller verdier." },
-      { id:"h1", cat:"hobbys",     reverse:false, text:"Hobbyene mine er lette å forklare for folk rundt meg.",                                              example:"f.eks. sport, matlaging, hagearbeid – ting som trenger liten forklaring." },
-      { id:"h2", cat:"hobbys",     reverse:false, text:"Hva andre synes om hobbyene mine påvirker om jeg driver med dem.",                                   example:"f.eks. du ville gitt opp eller skjult en hobby hvis den ikke ble godt mottatt." },
-      { id:"h3", cat:"hobbys",     reverse:true,  text:"Jeg prøver nye ting selv om jeg ikke aner om jeg vil like dem.",                                     example:"f.eks. et kurs, instrument eller idrett uten forhåndsundersøkelse." },
-      { id:"h4", cat:"hobbys",     reverse:false, text:"Jeg foretrekker aktiviteter der jeg kan måle tydelig fremgang.",                                     example:"f.eks. forbedre løpetider, fullføre nivåer eller kurs med diplom." },
-      { id:"l1", cat:"lifestyle",  reverse:false, text:"Jeg kler meg til anledninger i tråd med hva som forventes sosialt.",                                 example:"f.eks. dress i bryllup, treningsklær på treningsstudio – uten å stille spørsmål ved normene." },
-      { id:"l2", cat:"lifestyle",  reverse:false, text:"Stilen min skal utad gi et pent og velstelt inntrykk.",                                              example:"f.eks. alltid koordinerte antrekk – ingenting for dristig eller uvanlig." },
-      { id:"l3", cat:"lifestyle",  reverse:true,  text:"Jeg liker å kombinere klær på måter som overrasker eller forvirrer andre.",                          example:"f.eks. blande mønstre, uvanlige fargekombinasjoner eller vintage med sportswear." },
-      { id:"l4", cat:"lifestyle",  reverse:false, text:"Når jeg handler holder jeg meg til kjente merker og produkter.",                                     example:"f.eks. alltid samme vaskemiddel, parfyme eller skostil." },
-      { id:"r1", cat:"beziehung",  reverse:false, text:"Relasjonsmodeller som er veldig annerledes enn min egen er vanskelige for meg å forstå.",            example:"f.eks. åpne forhold, polyamori eller bevisst barnefrie par." },
-      { id:"r2", cat:"beziehung",  reverse:false, text:"Seksualitet hører hjemme i privatsfæren for meg – jeg diskuterer det sjelden offentlig.",            example:"f.eks. du foretrekker å ikke snakke åpent om det, eller synes det er upassende når andre gjør det." },
-      { id:"r3", cat:"beziehung",  reverse:true,  text:"Jeg synes ukonvensjonelle samlivs- eller livsmodeller er genuint interessante.",                    example:"f.eks. du stiller nysgjerrige spørsmål i stedet for å ta avstand." },
-      { id:"r4", cat:"beziehung",  reverse:false, text:"Et fungerende forhold trenger en klar felles ramme for meg.",                                        example:"f.eks. felles regler, rollefordeling eller felles fremtidsbilde." },
-      { id:"s1", cat:"soziales",   reverse:false, text:"Nære venner deler i stor grad lignende verdier som meg.",                                             example:"f.eks. lignende syn på familie, arbeid eller fritid." },
-      { id:"s2", cat:"soziales",   reverse:false, text:"Jeg møter folk som skiller seg veldig ut i omgangskretsen min med innledende forsiktighet.",          example:"f.eks. noen med svært annerledes livsstil, uvanlig fremtoning eller ekstreme synspunkter." },
-      { id:"s3", cat:"soziales",   reverse:true,  text:"Jeg pleier aktivt vennskap med folk som tenker veldig annerledes enn meg.",                          example:"f.eks. ulike aldersgrupper, bakgrunner eller verdensanskuelser i vennekretsen." },
-      { id:"s4", cat:"soziales",   reverse:false, text:"Visse adferdsmønstre på offentlige steder irriterer meg genuint.",                                   example:"f.eks. høyrøstede telefonsamtaler, køsnylting eller musikk uten hodetelefoner." },
-      { id:"p1", cat:"weltbild",   reverse:false, text:"Jeg observerer samfunnsendringer en stund før jeg danner meg en mening.",                            example:"f.eks. nye bevegelser, trender eller politiske utviklinger." },
-      { id:"p2", cat:"weltbild",   reverse:false, text:"Visse normer og verdier er grunnlaget for et fungerende samfunn, etter min mening.",                 example:"f.eks. punktlighet, pålitelighet eller respekt for eiendom." },
-      { id:"p3", cat:"weltbild",   reverse:true,  text:"Gode argumenter kan faktisk endre meningen min, selv på standpunkter jeg tidligere hadde.",          example:"f.eks. du har faktisk endret mening etter en samtale." },
-      { id:"p4", cat:"weltbild",   reverse:false, text:"For mye åpenhet i samfunnet fører til slutt til desorientering, etter min mening.",                  example:"f.eks. når normer og roller oppløses og du opplever det som et tap." },
-      { id:"x1", cat:"psyche",     reverse:false, text:"Jeg vet ganske godt hvem jeg er og hva jeg vil.",                                                    example:"f.eks. klare ideer om karriere, relasjoner eller livsstil – lite indre ambivalens." },
-      { id:"x2", cat:"psyche",     reverse:false, text:"Når andre tar beslutninger jeg anser som gale, er det vanskelig for meg å holde kjeft.",              example:"f.eks. gi råd eller kritikk selv når du ikke blir bedt om det." },
-      { id:"x3", cat:"psyche",     reverse:true,  text:"Jeg har vært gjennom en livsfase som forandret meg fundamentalt.",                                   example:"f.eks. en krise, omveltning eller erfaring som omformet verdenssynet ditt." },
-      { id:"x4", cat:"psyche",     reverse:false, text:"Jeg trives best når jeg vet hva som kommer.",                                                         example:"f.eks. faste planer, kjente rutiner eller håndterbare situasjoner." },
-      { id:"f1", cat:"familie",    reverse:false, text:"Jeg har et ganske konkret bilde av hvordan livet mitt bør se ut som 60-åring.",                       example:"f.eks. hus, pensjon, familie – et klart indre fremtidsbilde." },
-      { id:"f2", cat:"familie",    reverse:false, text:"Familiens mening veier en del i viktige beslutninger.",                                               example:"f.eks. yrkesvalg, forhold eller bosted." },
-      { id:"f3", cat:"familie",    reverse:true,  text:"Jeg kan godt forestille meg å radikalt endre livet mitt uten en konkret plan.",                       example:"f.eks. si opp jobben, flytte eller ta en helt ny retning." },
-      { id:"f4", cat:"familie",    reverse:false, text:"Et liv uten en fast partner eller egne barn føles på en måte ufullstendig for meg.",                  example:"f.eks. du kan knapt forestille deg å være varig lykkelig uten disse strukturene." },
+    questions:[
+      {id:"w1",cat:"wohnen",reverse:false,text:"Når jeg kommer hjem og noe er ute av plass, legger jeg det merke til med en gang.",example:"f.eks. en kopp noen har glemt, eller sko i gangen."},
+      {id:"w2",cat:"wohnen",reverse:false,text:"Et ryddig hjem sier mye om en person, etter min mening.",example:"f.eks. når du besøker noen og danner deg et ubevisst inntrykk."},
+      {id:"w3",cat:"wohnen",reverse:true,text:"Jeg lar kaos bare være kaos innimellom – det hører livet til.",example:"f.eks. en rotete helg eller et overfylt skrivebord midt i et prosjekt."},
+      {id:"w4",cat:"wohnen",reverse:false,text:"Det er viktig for meg å respektere grunnleggende regler for samliv.",example:"f.eks. holde ro-tider, holde fellesarealer ryddige."},
+      {id:"u1",cat:"urlaub",reverse:false,text:"En vellykket ferie starter med god planlegging for meg.",example:"f.eks. booke overnatting, aktiviteter og restauranter på forhånd."},
+      {id:"u2",cat:"urlaub",reverse:false,text:"Jeg reiser gjerne til steder jeg allerede kjenner og setter pris på.",example:"f.eks. samme strand hvert år eller samme fjellhytte."},
+      {id:"u3",cat:"urlaub",reverse:true,text:"De beste reiseopplevelsene oppstår ofte fra det uplanlagte for meg.",example:"f.eks. en tilfeldig funnet restaurant eller en spontan omvei."},
+      {id:"u4",cat:"urlaub",reverse:false,text:"Å reise til veldig fremmede kulturer opplever jeg mer som slitsomt enn berikende.",example:"f.eks. når språk, mat eller skikker er veldig annerledes enn dine egne."},
+      {id:"e1",cat:"ernaehrung",reverse:false,text:"På restaurant bestiller jeg som regel noe jeg allerede kjenner og liker.",example:"f.eks. alltid samme rett, eller spille det trygt."},
+      {id:"e2",cat:"ernaehrung",reverse:false,text:"Strenge kostholdsregler hos andre kan kjennes vanskelig i hverdagen.",example:"f.eks. når mange unntak må tas hensyn til ved et felles måltid."},
+      {id:"e3",cat:"ernaehrung",reverse:true,text:"Jeg prøver ukjente matretter spontant, uten å tenke meg om.",example:"f.eks. gatemat på reise eller en rett du ikke kjenner igjen."},
+      {id:"e4",cat:"ernaehrung",reverse:false,text:"Mat er primært nytelse og vane for meg – ikke et livsstilsutsagn.",example:"f.eks. spise det som smaker godt, uten å knytte det til identitet eller verdier."},
+      {id:"h1",cat:"hobbys",reverse:false,text:"Hobbyene mine er lette å forklare for folk rundt meg.",example:"f.eks. sport, matlaging, hagearbeid – ting som trenger liten forklaring."},
+      {id:"h2",cat:"hobbys",reverse:false,text:"Hva andre synes om hobbyene mine påvirker om jeg driver med dem.",example:"f.eks. du ville gitt opp eller skjult en hobby hvis den ikke ble godt mottatt."},
+      {id:"h3",cat:"hobbys",reverse:true,text:"Jeg prøver nye ting selv om jeg ikke aner om jeg vil like dem.",example:"f.eks. et kurs, instrument eller idrett uten forhåndsundersøkelse."},
+      {id:"h4",cat:"hobbys",reverse:false,text:"Jeg foretrekker aktiviteter der jeg kan måle tydelig fremgang.",example:"f.eks. forbedre løpetider, fullføre nivåer eller kurs med diplom."},
+      {id:"l1",cat:"lifestyle",reverse:false,text:"Jeg kler meg til anledninger i tråd med hva som forventes sosialt.",example:"f.eks. dress i bryllup, treningsklær på treningsstudio – uten å stille spørsmål ved normene."},
+      {id:"l2",cat:"lifestyle",reverse:false,text:"Stilen min skal utad gi et pent og velstelt inntrykk.",example:"f.eks. alltid koordinerte antrekk – ingenting for dristig eller uvanlig."},
+      {id:"l3",cat:"lifestyle",reverse:true,text:"Jeg liker å kombinere klær på måter som overrasker eller forvirrer andre.",example:"f.eks. blande mønstre, uvanlige fargekombinasjoner eller vintage med sportswear."},
+      {id:"l4",cat:"lifestyle",reverse:false,text:"Når jeg handler holder jeg meg til kjente merker og produkter.",example:"f.eks. alltid samme vaskemiddel, parfyme eller skostil."},
+      {id:"r1",cat:"beziehung",reverse:false,text:"Relasjonsmodeller som er veldig annerledes enn min egen er vanskelige for meg å forstå.",example:"f.eks. åpne forhold, polyamori eller bevisst barnefrie par."},
+      {id:"r2",cat:"beziehung",reverse:false,text:"Seksualitet hører hjemme i privatsfæren for meg – jeg diskuterer det sjelden offentlig.",example:"f.eks. du foretrekker å ikke snakke åpent om det, eller synes det er upassende når andre gjør det."},
+      {id:"r3",cat:"beziehung",reverse:true,text:"Jeg synes ukonvensjonelle samlivs- eller livsmodeller er genuint interessante.",example:"f.eks. du stiller nysgjerrige spørsmål i stedet for å ta avstand."},
+      {id:"r4",cat:"beziehung",reverse:false,text:"Et fungerende forhold trenger en klar felles ramme for meg.",example:"f.eks. felles regler, rollefordeling eller felles fremtidsbilde."},
+      {id:"s1",cat:"soziales",reverse:false,text:"Nære venner deler i stor grad lignende verdier som meg.",example:"f.eks. lignende syn på familie, arbeid eller fritid."},
+      {id:"s2",cat:"soziales",reverse:false,text:"Jeg møter folk som skiller seg veldig ut i omgangskretsen min med innledende forsiktighet.",example:"f.eks. noen med svært annerledes livsstil, uvanlig fremtoning eller ekstreme synspunkter."},
+      {id:"s3",cat:"soziales",reverse:true,text:"Jeg pleier aktivt vennskap med folk som tenker veldig annerledes enn meg.",example:"f.eks. ulike aldersgrupper, bakgrunner eller verdensanskuelser i vennekretsen."},
+      {id:"s4",cat:"soziales",reverse:false,text:"Visse adferdsmønstre på offentlige steder irriterer meg genuint.",example:"f.eks. høyrøstede telefonsamtaler, køsnylting eller musikk uten hodetelefoner."},
+      {id:"p1",cat:"weltbild",reverse:false,text:"Jeg observerer samfunnsendringer en stund før jeg danner meg en mening.",example:"f.eks. nye bevegelser, trender eller politiske utviklinger."},
+      {id:"p2",cat:"weltbild",reverse:false,text:"Visse normer og verdier er grunnlaget for et fungerende samfunn, etter min mening.",example:"f.eks. punktlighet, pålitelighet eller respekt for eiendom."},
+      {id:"p3",cat:"weltbild",reverse:true,text:"Gode argumenter kan faktisk endre meningen min, selv på standpunkter jeg tidligere hadde.",example:"f.eks. du har faktisk endret mening etter en samtale."},
+      {id:"p4",cat:"weltbild",reverse:false,text:"For mye åpenhet i samfunnet fører til slutt til desorientering, etter min mening.",example:"f.eks. når normer og roller oppløses og du opplever det som et tap."},
+      {id:"x1",cat:"psyche",reverse:false,text:"Jeg vet ganske godt hvem jeg er og hva jeg vil.",example:"f.eks. klare ideer om karriere, relasjoner eller livsstil – lite indre ambivalens."},
+      {id:"x2",cat:"psyche",reverse:false,text:"Når andre tar beslutninger jeg anser som gale, er det vanskelig for meg å holde kjeft.",example:"f.eks. gi råd eller kritikk selv når du ikke blir bedt om det."},
+      {id:"x3",cat:"psyche",reverse:true,text:"Jeg har vært gjennom en livsfase som forandret meg fundamentalt.",example:"f.eks. en krise, omveltning eller erfaring som omformet verdenssynet ditt."},
+      {id:"x4",cat:"psyche",reverse:false,text:"Jeg trives best når jeg vet hva som kommer.",example:"f.eks. faste planer, kjente rutiner eller håndterbare situasjoner."},
+      {id:"f1",cat:"familie",reverse:false,text:"Jeg har et ganske konkret bilde av hvordan livet mitt bør se ut som 60-åring.",example:"f.eks. hus, pensjon, familie – et klart indre fremtidsbilde."},
+      {id:"f2",cat:"familie",reverse:false,text:"Familiens mening veier en del i viktige beslutninger.",example:"f.eks. yrkesvalg, forhold eller bosted."},
+      {id:"f3",cat:"familie",reverse:true,text:"Jeg kan godt forestille meg å radikalt endre livet mitt uten en konkret plan.",example:"f.eks. si opp jobben, flytte eller ta en helt ny retning."},
+      {id:"f4",cat:"familie",reverse:false,text:"Et liv uten en fast partner eller egne barn føles på en måte ufullstendig for meg.",example:"f.eks. du kan knapt forestille deg å være varig lykkelig uten disse strukturene."},
     ],
   },
-
   vi: {
-    appSubtitle:     "Phiên bản Vuốt",
-    tagline:         "câu hỏi. Không có đúng hay sai – hãy trả lời tự nhiên.",
-    categoriesLabel: "Lĩnh vực cuộc sống",
-    namePlaceholder: "Tên của bạn (tùy chọn)",
-    startBtn:        "BẮT ĐẦU →",
-    swipeLeft:       "← ít phù hợp hơn",
-    swipeRight:      "phù hợp hơn →",
-    orTap:           "hoặc nhấn nút",
-    stampYes:        "PHÙ HỢP ✓",
-    stampNo:         "ÍT HƠN ✗",
-    btnMore:         "phù hợp hơn",
-    btnLess:         "ít phù hợp hơn",
-    btnUndo:         "↩ hoàn tác",
-    resultTitle:     "Kết quả của bạn",
-    resultFor:       "Kết quả cho",
-    outOf:           "TRÊN 10",
-    saveImg:         "📸 Lưu dưới dạng ảnh",
-    saving:          "⏳ Đang tạo...",
-    undoLast:        "↩ Câu trả lời cuối",
-    byCategory:      "Theo lĩnh vực",
-    conventional:    "Truyền thống",
-    freeSpirit:      "Tự do",
-    towardConv:      "→ thiên về truyền thống",
-    towardFree:      "→ thiên về tự do",
-    ansMore:         "phù hợp hơn",
-    ansLess:         "ít phù hợp hơn",
-    again:           "↺ Thử lại",
-    undoLastCorr:    "↩ Sửa câu trả lời cuối",
-    meter: [
-      { max:2,  label:"Tâm hồn tự do",          desc:"Bạn sống theo quy tắc của riêng mình và ít cần định hướng từ bên ngoài. Điều đó mang lại cho bạn nhiều tự do và độc lập.", color:"#60a5fa" },
-      { max:4,  label:"Độc lập & Cởi mở",        desc:"Bạn thích theo la bàn của chính mình hơn là kỳ vọng của người khác – và luôn cởi mở với những điều mới.", color:"#34d399" },
-      { max:6,  label:"Cân bằng",                desc:"Bạn kết hợp sự cởi mở và đáng tin cậy. Cấu trúc và sự bột phát đều có chỗ đứng trong cuộc sống của bạn.", color:"#fbbf24" },
-      { max:8,  label:"Có cấu trúc & Đáng tin",  desc:"Các quy tắc rõ ràng và thói quen đã thiết lập mang lại cho bạn sự ổn định – và làm cho bạn đáng tin cậy theo nghĩa tích cực.", color:"#f97316" },
-      { max:10, label:"Nhất quán & Truyền thống", desc:"Bạn biết mình muốn gì – và nó phần lớn phù hợp với những gì xã hội coi là đúng. Điều đó tạo ra sự ổn định.", color:"#e879f9" },
+    appSubtitle:"Phiên bản Vuốt",tagline:"câu hỏi. Không có đúng hay sai – hãy trả lời tự nhiên.",
+    categoriesLabel:"Lĩnh vực cuộc sống",namePlaceholder:"Tên của bạn (tùy chọn)",startBtn:"BẮT ĐẦU →",
+    swipeLeft:"← ít phù hợp hơn",swipeRight:"phù hợp hơn →",orTap:"hoặc nhấn nút",
+    stampYes:"PHÙ HỢP ✓",stampNo:"ÍT HƠN ✗",btnMore:"phù hợp hơn",btnLess:"ít phù hợp hơn",
+    btnUndo:"↩ hoàn tác",resultTitle:"Kết quả của bạn",resultFor:"Kết quả cho",outOf:"TRÊN 10",
+    saveImg:"📸 Lưu dưới dạng ảnh",saving:"⏳ Đang tạo...",undoLast:"↩ Câu trả lời cuối",
+    byCategory:"Theo lĩnh vực",conventional:"Truyền thống",freeSpirit:"Tự do",
+    towardConv:"→ thiên về truyền thống",towardFree:"→ thiên về tự do",
+    ansMore:"phù hợp hơn",ansLess:"ít phù hợp hơn",again:"↺ Thử lại",
+    undoLastCorr:"↩ Sửa câu trả lời cuối",
+    allTypes:"So sánh tất cả các loại",yourType:"Loại của bạn",rangeLabel:"Phạm vi điểm",
+    meter:[
+      {max:2, label:"Tâm hồn tự do",desc:"Bạn sống theo quy tắc của riêng mình và ít cần định hướng từ bên ngoài. Điều đó mang lại cho bạn nhiều tự do và độc lập.",color:"#60a5fa"},
+      {max:4, label:"Độc lập & Cởi mở",desc:"Bạn thích theo la bàn của chính mình hơn là kỳ vọng của người khác – và luôn cởi mở với những điều mới.",color:"#34d399"},
+      {max:6, label:"Cân bằng",desc:"Bạn kết hợp sự cởi mở và đáng tin cậy. Cấu trúc và sự bột phát đều có chỗ đứng trong cuộc sống của bạn.",color:"#fbbf24"},
+      {max:8, label:"Có cấu trúc & Đáng tin",desc:"Các quy tắc rõ ràng và thói quen đã thiết lập mang lại cho bạn sự ổn định – và làm cho bạn đáng tin cậy theo nghĩa tích cực.",color:"#f97316"},
+      {max:10,label:"Nhất quán & Truyền thống",desc:"Bạn biết mình muốn gì – và nó phần lớn phù hợp với những gì xã hội coi là đúng. Điều đó tạo ra sự ổn định.",color:"#e879f9"},
     ],
-    categories: [
-      { id:"wohnen",     label:"Nhà & Cuộc sống",      emoji:"🏠" },
-      { id:"urlaub",     label:"Du lịch & Kỳ nghỉ",    emoji:"✈️" },
-      { id:"ernaehrung", label:"Ẩm thực & Thưởng thức",emoji:"🍽️" },
-      { id:"hobbys",     label:"Sở thích & Đam mê",    emoji:"🎯" },
-      { id:"lifestyle",  label:"Phong cách & Thời trang",emoji:"👗" },
-      { id:"beziehung",  label:"Tình cảm & Gần gũi",   emoji:"❤️" },
-      { id:"soziales",   label:"Xã hội & Môi trường",  emoji:"👥" },
-      { id:"weltbild",   label:"Thế giới quan & Giá trị",emoji:"🌍" },
-      { id:"psyche",     label:"Bản thân & Nội tâm",   emoji:"🧠" },
-      { id:"familie",    label:"Gia đình & Mục tiêu",  emoji:"👨‍👩‍👧" },
+    categories:[
+      {id:"wohnen",label:"Nhà & Cuộc sống",emoji:"🏠"},{id:"urlaub",label:"Du lịch & Kỳ nghỉ",emoji:"✈️"},
+      {id:"ernaehrung",label:"Ẩm thực & Thưởng thức",emoji:"🍽️"},{id:"hobbys",label:"Sở thích & Đam mê",emoji:"🎯"},
+      {id:"lifestyle",label:"Phong cách & Thời trang",emoji:"👗"},{id:"beziehung",label:"Tình cảm & Gần gũi",emoji:"❤️"},
+      {id:"soziales",label:"Xã hội & Môi trường",emoji:"👥"},{id:"weltbild",label:"Thế giới quan & Giá trị",emoji:"🌍"},
+      {id:"psyche",label:"Bản thân & Nội tâm",emoji:"🧠"},{id:"familie",label:"Gia đình & Mục tiêu",emoji:"👨‍👩‍👧"},
     ],
-    questions: [
-      { id:"w1", cat:"wohnen",     reverse:false, text:"Khi về nhà và thấy có gì đó không đúng chỗ, tôi nhận ra ngay.",                                      example:"ví dụ: một chiếc cốc ai đó để lại, hoặc giày ở hành lang." },
-      { id:"w2", cat:"wohnen",     reverse:false, text:"Theo tôi, một ngôi nhà gọn gàng nói lên nhiều điều về chủ nhân.",                                    example:"ví dụ: khi thăm ai đó và vô thức hình thành ấn tượng." },
-      { id:"w3", cat:"wohnen",     reverse:true,  text:"Đôi khi tôi cứ để lộn xộn là lộn xộn – đó là một phần của cuộc sống.",                              example:"ví dụ: cuối tuần bừa bộn hoặc bàn làm việc đầy ắp giữa dự án." },
-      { id:"w4", cat:"wohnen",     reverse:false, text:"Tôn trọng các quy tắc cơ bản khi sống chung là điều quan trọng với tôi.",                            example:"ví dụ: giữ giờ giấc yên tĩnh, dọn dẹp khu vực chung." },
-      { id:"u1", cat:"urlaub",     reverse:false, text:"Đối với tôi, một kỳ nghỉ tốt bắt đầu với kế hoạch chu đáo.",                                         example:"ví dụ: đặt chỗ ở, hoạt động và nhà hàng trước." },
-      { id:"u2", cat:"urlaub",     reverse:false, text:"Tôi thích quay lại những nơi tôi đã biết và yêu thích.",                                             example:"ví dụ: cùng một bãi biển mỗi năm hoặc cùng một căn nhà núi." },
-      { id:"u3", cat:"urlaub",     reverse:true,  text:"Những khoảnh khắc du lịch đẹp nhất thường đến từ sự tự phát.",                                       example:"ví dụ: tình cờ tìm thấy nhà hàng hay ghé thăm ngoài kế hoạch." },
-      { id:"u4", cat:"urlaub",     reverse:false, text:"Du lịch đến những nền văn hóa rất xa lạ với tôi thấy mệt mỏi hơn là phong phú.",                    example:"ví dụ: khi ngôn ngữ, ẩm thực hay phong tục rất khác với của bạn." },
-      { id:"e1", cat:"ernaehrung", reverse:false, text:"Ở nhà hàng, tôi thường gọi món mình đã biết và thích.",                                              example:"ví dụ: luôn gọi cùng một món, hoặc chọn an toàn." },
-      { id:"e2", cat:"ernaehrung", reverse:false, text:"Các quy tắc ăn uống nghiêm ngặt của người khác có thể gây khó khăn trong cuộc sống hàng ngày.",      example:"ví dụ: khi bữa ăn chung phải có nhiều ngoại lệ." },
-      { id:"e3", cat:"ernaehrung", reverse:true,  text:"Tôi thử món lạ một cách tự phát, không cần suy nghĩ nhiều.",                                          example:"ví dụ: đồ ăn đường phố khi du lịch hoặc món bạn không nhận ra." },
-      { id:"e4", cat:"ernaehrung", reverse:false, text:"Với tôi, ăn uống chủ yếu là thú vui và thói quen – không phải tuyên ngôn lối sống.",                 example:"ví dụ: ăn những gì ngon miệng mà không gắn với bản sắc hay giá trị." },
-      { id:"h1", cat:"hobbys",     reverse:false, text:"Sở thích của tôi dễ giải thích cho mọi người xung quanh.",                                           example:"ví dụ: thể thao, nấu ăn, làm vườn – những thứ ít cần giải thích." },
-      { id:"h2", cat:"hobbys",     reverse:false, text:"Ý kiến của người khác về sở thích của tôi ảnh hưởng đến việc tôi có theo đuổi chúng không.",         example:"ví dụ: bạn sẽ từ bỏ hoặc giấu sở thích nếu nó không được đón nhận tốt." },
-      { id:"h3", cat:"hobbys",     reverse:true,  text:"Tôi thử những thứ mới dù không biết mình có thích không.",                                            example:"ví dụ: một khóa học, nhạc cụ hay môn thể thao mà không nghiên cứu trước." },
-      { id:"h4", cat:"hobbys",     reverse:false, text:"Tôi thích các hoạt động có thể đo lường tiến độ rõ ràng.",                                           example:"ví dụ: cải thiện thời gian chạy, hoàn thành cấp độ hoặc khóa học có chứng chỉ." },
-      { id:"l1", cat:"lifestyle",  reverse:false, text:"Tôi ăn mặc theo những gì được mong đợi về mặt xã hội cho từng dịp.",                                 example:"ví dụ: vest đám cưới, đồ thể thao ở phòng gym – không đặt câu hỏi về các quy tắc này." },
-      { id:"l2", cat:"lifestyle",  reverse:false, text:"Phong cách của tôi nên tạo ra ấn tượng gọn gàng, lịch sự ra bên ngoài.",                             example:"ví dụ: luôn phối đồ hài hòa – không quá táo bạo hay khác lạ." },
-      { id:"l3", cat:"lifestyle",  reverse:true,  text:"Tôi thích phối đồ theo cách khiến người khác ngạc nhiên hoặc bối rối.",                               example:"ví dụ: mix họa tiết, kết hợp màu sắc độc đáo hoặc vintage với đồ thể thao." },
-      { id:"l4", cat:"lifestyle",  reverse:false, text:"Khi mua sắm, tôi thường gắn bó với các thương hiệu và sản phẩm quen thuộc.",                         example:"ví dụ: luôn cùng một nhãn hiệu bột giặt, nước hoa hay kiểu giày." },
-      { id:"r1", cat:"beziehung",  reverse:false, text:"Các mô hình quan hệ rất khác với mô hình của tôi rất khó để tôi hiểu.",                               example:"ví dụ: quan hệ mở, đa tình hay cặp đôi tự chọn không có con." },
-      { id:"r2", cat:"beziehung",  reverse:false, text:"Theo tôi, tình dục thuộc về không gian riêng tư – tôi hiếm khi thảo luận công khai.",                example:"ví dụ: bạn không thích nói thẳng về nó, hoặc thấy không phù hợp khi người khác làm vậy." },
-      { id:"r3", cat:"beziehung",  reverse:true,  text:"Tôi thấy các mô hình quan hệ hoặc cuộc sống không truyền thống thực sự thú vị.",                    example:"ví dụ: bạn đặt câu hỏi tò mò thay vì giữ khoảng cách." },
-      { id:"r4", cat:"beziehung",  reverse:false, text:"Với tôi, một mối quan hệ tốt cần có khung chung rõ ràng.",                                           example:"ví dụ: quy tắc chung, phân chia vai trò hoặc tầm nhìn tương lai chung." },
-      { id:"s1", cat:"soziales",   reverse:false, text:"Những người bạn thân nhất của tôi phần lớn chia sẻ các giá trị tương tự.",                           example:"ví dụ: quan điểm tương tự về gia đình, công việc hay giải trí." },
-      { id:"s2", cat:"soziales",   reverse:false, text:"Tôi tiếp cận những người nổi bật trong nhóm của mình bằng sự thận trọng ban đầu.",                   example:"ví dụ: ai đó có lối sống, ngoại hình hoặc quan điểm rất khác biệt." },
-      { id:"s3", cat:"soziales",   reverse:true,  text:"Tôi chủ động duy trì tình bạn với những người suy nghĩ rất khác tôi.",                               example:"ví dụ: các nhóm tuổi, xuất thân hay thế giới quan khác nhau trong vòng bạn bè." },
-      { id:"s4", cat:"soziales",   reverse:false, text:"Một số hành vi nơi công cộng thực sự làm tôi khó chịu.",                                             example:"ví dụ: nói điện thoại ầm ĩ, chen hàng hoặc nghe nhạc không dùng tai nghe." },
-      { id:"p1", cat:"weltbild",   reverse:false, text:"Tôi quan sát những thay đổi xã hội một thời gian trước khi hình thành ý kiến.",                      example:"ví dụ: các phong trào mới, xu hướng hoặc phát triển chính trị." },
-      { id:"p2", cat:"weltbild",   reverse:false, text:"Theo tôi, một số chuẩn mực và giá trị là nền tảng của xã hội hoạt động tốt.",                        example:"ví dụ: đúng giờ, đáng tin cậy hay tôn trọng tài sản." },
-      { id:"p3", cat:"weltbild",   reverse:true,  text:"Những lý lẽ hay thực sự có thể thay đổi quan điểm của tôi, kể cả những điều tôi đã tin trước đó.",   example:"ví dụ: bạn đã thực sự thay đổi ý kiến sau một cuộc trò chuyện." },
-      { id:"p4", cat:"weltbild",   reverse:false, text:"Theo tôi, quá nhiều cởi mở trong xã hội cuối cùng dẫn đến mất phương hướng.",                        example:"ví dụ: khi các chuẩn mực và vai trò tiếp tục tan rã và bạn cảm thấy đó là mất mát." },
-      { id:"x1", cat:"psyche",     reverse:false, text:"Tôi biết khá rõ mình là ai và mình muốn gì.",                                                         example:"ví dụ: ý tưởng rõ ràng về sự nghiệp, mối quan hệ hay lối sống – ít mâu thuẫn nội tâm." },
-      { id:"x2", cat:"psyche",     reverse:false, text:"Khi người khác đưa ra quyết định mà tôi cho là sai, việc im lặng rất khó với tôi.",                   example:"ví dụ: đưa ra lời khuyên hay phê bình dù không được hỏi." },
-      { id:"x3", cat:"psyche",     reverse:true,  text:"Tôi đã trải qua một giai đoạn cuộc sống thay đổi tôi một cách căn bản.",                              example:"ví dụ: một cuộc khủng hoảng, biến động hoặc trải nghiệm định hình lại thế giới quan." },
-      { id:"x4", cat:"psyche",     reverse:false, text:"Tôi cảm thấy thoải mái nhất khi biết điều gì sẽ đến tiếp theo.",                                     example:"ví dụ: kế hoạch cố định, thói quen quen thuộc hoặc tình huống có thể kiểm soát." },
-      { id:"f1", cat:"familie",    reverse:false, text:"Tôi có hình ảnh khá cụ thể về cuộc sống của mình khi 60 tuổi.",                                       example:"ví dụ: nhà riêng, lương hưu, gia đình – hình ảnh nội tâm rõ ràng về tương lai." },
-      { id:"f2", cat:"familie",    reverse:false, text:"Ý kiến của gia đình có trọng lượng nhất định trong các quyết định quan trọng.",                       example:"ví dụ: chọn nghề nghiệp, mối quan hệ hay nơi sinh sống." },
-      { id:"f3", cat:"familie",    reverse:true,  text:"Tôi dễ dàng tưởng tượng thay đổi hoàn toàn cuộc sống mà không cần kế hoạch cụ thể.",                 example:"ví dụ: bỏ việc, chuyển chỗ ở hoặc đi theo hướng hoàn toàn mới." },
-      { id:"f4", cat:"familie",    reverse:false, text:"Cuộc sống không có bạn đời ổn định hay con cái cảm thấy như thiếu sót với tôi.",                      example:"ví dụ: bạn gần như không thể hình dung mình hạnh phúc lâu dài mà không có những cấu trúc này." },
+    questions:[
+      {id:"w1",cat:"wohnen",reverse:false,text:"Khi về nhà và thấy có gì đó không đúng chỗ, tôi nhận ra ngay.",example:"ví dụ: một chiếc cốc ai đó để lại, hoặc giày ở hành lang."},
+      {id:"w2",cat:"wohnen",reverse:false,text:"Theo tôi, một ngôi nhà gọn gàng nói lên nhiều điều về chủ nhân.",example:"ví dụ: khi thăm ai đó và vô thức hình thành ấn tượng."},
+      {id:"w3",cat:"wohnen",reverse:true,text:"Đôi khi tôi cứ để lộn xộn là lộn xộn – đó là một phần của cuộc sống.",example:"ví dụ: cuối tuần bừa bộn hoặc bàn làm việc đầy ắp giữa dự án."},
+      {id:"w4",cat:"wohnen",reverse:false,text:"Tôn trọng các quy tắc cơ bản khi sống chung là điều quan trọng với tôi.",example:"ví dụ: giữ giờ giấc yên tĩnh, dọn dẹp khu vực chung."},
+      {id:"u1",cat:"urlaub",reverse:false,text:"Đối với tôi, một kỳ nghỉ tốt bắt đầu với kế hoạch chu đáo.",example:"ví dụ: đặt chỗ ở, hoạt động và nhà hàng trước."},
+      {id:"u2",cat:"urlaub",reverse:false,text:"Tôi thích quay lại những nơi tôi đã biết và yêu thích.",example:"ví dụ: cùng một bãi biển mỗi năm hoặc cùng một căn nhà núi."},
+      {id:"u3",cat:"urlaub",reverse:true,text:"Những khoảnh khắc du lịch đẹp nhất thường đến từ sự tự phát.",example:"ví dụ: tình cờ tìm thấy nhà hàng hay ghé thăm ngoài kế hoạch."},
+      {id:"u4",cat:"urlaub",reverse:false,text:"Du lịch đến những nền văn hóa rất xa lạ với tôi thấy mệt mỏi hơn là phong phú.",example:"ví dụ: khi ngôn ngữ, ẩm thực hay phong tục rất khác với của bạn."},
+      {id:"e1",cat:"ernaehrung",reverse:false,text:"Ở nhà hàng, tôi thường gọi món mình đã biết và thích.",example:"ví dụ: luôn gọi cùng một món, hoặc chọn an toàn."},
+      {id:"e2",cat:"ernaehrung",reverse:false,text:"Các quy tắc ăn uống nghiêm ngặt của người khác có thể gây khó khăn trong cuộc sống hàng ngày.",example:"ví dụ: khi bữa ăn chung phải có nhiều ngoại lệ."},
+      {id:"e3",cat:"ernaehrung",reverse:true,text:"Tôi thử món lạ một cách tự phát, không cần suy nghĩ nhiều.",example:"ví dụ: đồ ăn đường phố khi du lịch hoặc món bạn không nhận ra."},
+      {id:"e4",cat:"ernaehrung",reverse:false,text:"Với tôi, ăn uống chủ yếu là thú vui và thói quen – không phải tuyên ngôn lối sống.",example:"ví dụ: ăn những gì ngon miệng mà không gắn với bản sắc hay giá trị."},
+      {id:"h1",cat:"hobbys",reverse:false,text:"Sở thích của tôi dễ giải thích cho mọi người xung quanh.",example:"ví dụ: thể thao, nấu ăn, làm vườn – những thứ ít cần giải thích."},
+      {id:"h2",cat:"hobbys",reverse:false,text:"Ý kiến của người khác về sở thích của tôi ảnh hưởng đến việc tôi có theo đuổi chúng không.",example:"ví dụ: bạn sẽ từ bỏ hoặc giấu sở thích nếu nó không được đón nhận tốt."},
+      {id:"h3",cat:"hobbys",reverse:true,text:"Tôi thử những thứ mới dù không biết mình có thích không.",example:"ví dụ: một khóa học, nhạc cụ hay môn thể thao mà không nghiên cứu trước."},
+      {id:"h4",cat:"hobbys",reverse:false,text:"Tôi thích các hoạt động có thể đo lường tiến độ rõ ràng.",example:"ví dụ: cải thiện thời gian chạy, hoàn thành cấp độ hoặc khóa học có chứng chỉ."},
+      {id:"l1",cat:"lifestyle",reverse:false,text:"Tôi ăn mặc theo những gì được mong đợi về mặt xã hội cho từng dịp.",example:"ví dụ: vest đám cưới, đồ thể thao ở phòng gym – không đặt câu hỏi về các quy tắc này."},
+      {id:"l2",cat:"lifestyle",reverse:false,text:"Phong cách của tôi nên tạo ra ấn tượng gọn gàng, lịch sự ra bên ngoài.",example:"ví dụ: luôn phối đồ hài hòa – không quá táo bạo hay khác lạ."},
+      {id:"l3",cat:"lifestyle",reverse:true,text:"Tôi thích phối đồ theo cách khiến người khác ngạc nhiên hoặc bối rối.",example:"ví dụ: mix họa tiết, kết hợp màu sắc độc đáo hoặc vintage với đồ thể thao."},
+      {id:"l4",cat:"lifestyle",reverse:false,text:"Khi mua sắm, tôi thường gắn bó với các thương hiệu và sản phẩm quen thuộc.",example:"ví dụ: luôn cùng một nhãn hiệu bột giặt, nước hoa hay kiểu giày."},
+      {id:"r1",cat:"beziehung",reverse:false,text:"Các mô hình quan hệ rất khác với mô hình của tôi rất khó để tôi hiểu.",example:"ví dụ: quan hệ mở, đa tình hay cặp đôi tự chọn không có con."},
+      {id:"r2",cat:"beziehung",reverse:false,text:"Theo tôi, tình dục thuộc về không gian riêng tư – tôi hiếm khi thảo luận công khai.",example:"ví dụ: bạn không thích nói thẳng về nó, hoặc thấy không phù hợp khi người khác làm vậy."},
+      {id:"r3",cat:"beziehung",reverse:true,text:"Tôi thấy các mô hình quan hệ hoặc cuộc sống không truyền thống thực sự thú vị.",example:"ví dụ: bạn đặt câu hỏi tò mò thay vì giữ khoảng cách."},
+      {id:"r4",cat:"beziehung",reverse:false,text:"Với tôi, một mối quan hệ tốt cần có khung chung rõ ràng.",example:"ví dụ: quy tắc chung, phân chia vai trò hoặc tầm nhìn tương lai chung."},
+      {id:"s1",cat:"soziales",reverse:false,text:"Những người bạn thân nhất của tôi phần lớn chia sẻ các giá trị tương tự.",example:"ví dụ: quan điểm tương tự về gia đình, công việc hay giải trí."},
+      {id:"s2",cat:"soziales",reverse:false,text:"Tôi tiếp cận những người nổi bật trong nhóm của mình bằng sự thận trọng ban đầu.",example:"ví dụ: ai đó có lối sống, ngoại hình hoặc quan điểm rất khác biệt."},
+      {id:"s3",cat:"soziales",reverse:true,text:"Tôi chủ động duy trì tình bạn với những người suy nghĩ rất khác tôi.",example:"ví dụ: các nhóm tuổi, xuất thân hay thế giới quan khác nhau trong vòng bạn bè."},
+      {id:"s4",cat:"soziales",reverse:false,text:"Một số hành vi nơi công cộng thực sự làm tôi khó chịu.",example:"ví dụ: nói điện thoại ầm ĩ, chen hàng hoặc nghe nhạc không dùng tai nghe."},
+      {id:"p1",cat:"weltbild",reverse:false,text:"Tôi quan sát những thay đổi xã hội một thời gian trước khi hình thành ý kiến.",example:"ví dụ: các phong trào mới, xu hướng hoặc phát triển chính trị."},
+      {id:"p2",cat:"weltbild",reverse:false,text:"Theo tôi, một số chuẩn mực và giá trị là nền tảng của xã hội hoạt động tốt.",example:"ví dụ: đúng giờ, đáng tin cậy hay tôn trọng tài sản."},
+      {id:"p3",cat:"weltbild",reverse:true,text:"Những lý lẽ hay thực sự có thể thay đổi quan điểm của tôi, kể cả những điều tôi đã tin trước đó.",example:"ví dụ: bạn đã thực sự thay đổi ý kiến sau một cuộc trò chuyện."},
+      {id:"p4",cat:"weltbild",reverse:false,text:"Theo tôi, quá nhiều cởi mở trong xã hội cuối cùng dẫn đến mất phương hướng.",example:"ví dụ: khi các chuẩn mực và vai trò tiếp tục tan rã và bạn cảm thấy đó là mất mát."},
+      {id:"x1",cat:"psyche",reverse:false,text:"Tôi biết khá rõ mình là ai và mình muốn gì.",example:"ví dụ: ý tưởng rõ ràng về sự nghiệp, mối quan hệ hay lối sống – ít mâu thuẫn nội tâm."},
+      {id:"x2",cat:"psyche",reverse:false,text:"Khi người khác đưa ra quyết định mà tôi cho là sai, việc im lặng rất khó với tôi.",example:"ví dụ: đưa ra lời khuyên hay phê bình dù không được hỏi."},
+      {id:"x3",cat:"psyche",reverse:true,text:"Tôi đã trải qua một giai đoạn cuộc sống thay đổi tôi một cách căn bản.",example:"ví dụ: một cuộc khủng hoảng, biến động hoặc trải nghiệm định hình lại thế giới quan."},
+      {id:"x4",cat:"psyche",reverse:false,text:"Tôi cảm thấy thoải mái nhất khi biết điều gì sẽ đến tiếp theo.",example:"ví dụ: kế hoạch cố định, thói quen quen thuộc hoặc tình huống có thể kiểm soát."},
+      {id:"f1",cat:"familie",reverse:false,text:"Tôi có hình ảnh khá cụ thể về cuộc sống của mình khi 60 tuổi.",example:"ví dụ: nhà riêng, lương hưu, gia đình – hình ảnh nội tâm rõ ràng về tương lai."},
+      {id:"f2",cat:"familie",reverse:false,text:"Ý kiến của gia đình có trọng lượng nhất định trong các quyết định quan trọng.",example:"ví dụ: chọn nghề nghiệp, mối quan hệ hay nơi sinh sống."},
+      {id:"f3",cat:"familie",reverse:true,text:"Tôi dễ dàng tưởng tượng thay đổi hoàn toàn cuộc sống mà không cần kế hoạch cụ thể.",example:"ví dụ: bỏ việc, chuyển chỗ ở hoặc đi theo hướng hoàn toàn mới."},
+      {id:"f4",cat:"familie",reverse:false,text:"Cuộc sống không có bạn đời ổn định hay con cái cảm thấy như thiếu sót với tôi.",example:"ví dụ: bạn gần như không thể hình dung mình hạnh phúc lâu dài mà không có những cấu trúc này."},
     ],
   },
 };
 
-const LANGS = [
-  { code:"de", flag:"🇩🇪", name:"DE" },
-  { code:"en", flag:"🇬🇧", name:"EN" },
-  { code:"no", flag:"🇳🇴", name:"NO" },
-  { code:"vi", flag:"🇻🇳", name:"VI" },
-];
+const LANGS=[{code:"de",flag:"🇩🇪",name:"DE"},{code:"en",flag:"🇬🇧",name:"EN"},{code:"no",flag:"🇳🇴",name:"NO"},{code:"vi",flag:"🇻🇳",name:"VI"}];
 
-// ── Scoring ───────────────────────────────────────────────────────────────────
-function scoreQuestion(q, val) { return q.reverse ? 1 - val : val; }
+function scoreQuestion(q,val){return q.reverse?1-val:val;}
+function getRawScore(questions,answers){let total=0,count=0;for(const q of questions){const val=answers[q.id];if(val===undefined)continue;total+=scoreQuestion(q,val);count++;}return count===0?0:(total/count)*10;}
+function getCategoryScore(catId,questions,answers){const qs=questions.filter(q=>q.cat===catId);let total=0,count=0;for(const q of qs){const val=answers[q.id];if(val===undefined)continue;total+=scoreQuestion(q,val);count++;}return count===0?null:(total/count)*10;}
+function getMeter(score,t){return t.meter.find(m=>score<=m.max)||t.meter[t.meter.length-1];}
+function getScoringDirection(question,answer,t){const p=question.reverse?answer===0:answer===1;return p?{label:t.towardConv,color:"#e879f9",dir:"right"}:{label:t.towardFree,color:"#60a5fa",dir:"left"};}
 
-function getRawScore(questions, answers) {
-  let total = 0, count = 0;
-  for (const q of questions) {
-    const val = answers[q.id];
-    if (val === undefined) continue;
-    total += scoreQuestion(q, val); count++;
-  }
-  return count === 0 ? 0 : (total / count) * 10;
-}
+function roundRectPath(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+function wrapText(ctx,text,x,y,maxWidth,lineHeight){const words=text.split(" ");let line="";for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line,x,y);line=word;y+=lineHeight;}else{line=test;}}if(line)ctx.fillText(line,x,y);}
+function drawShareCard(meter,name,t){const SIZE=600;const canvas=document.createElement("canvas");canvas.width=SIZE;canvas.height=SIZE;const ctx=canvas.getContext("2d");const bg=ctx.createRadialGradient(SIZE*0.3,0,0,SIZE*0.3,0,SIZE*1.1);bg.addColorStop(0,"#1a2744");bg.addColorStop(1,"#080d18");ctx.fillStyle=bg;ctx.fillRect(0,0,SIZE,SIZE);ctx.strokeStyle=meter.color+"44";ctx.lineWidth=2;ctx.strokeRect(1,1,SIZE-2,SIZE-2);const cx=SIZE/2;let y=60;ctx.font="40px serif";ctx.textAlign="center";ctx.fillText("📏",cx,y);y+=50;ctx.font="bold 13px Georgia,serif";ctx.fillStyle="#475569";ctx.fillText("S P I E S S - O - M E T E R",cx,y);y+=36;if(name){ctx.font="16px Georgia,serif";ctx.fillStyle="#94a3b8";ctx.fillText(name,cx,y);y+=32;}ctx.font="bold 100px Georgia,serif";ctx.fillStyle=meter.color;ctx.fillText(meter.level.toFixed(1),cx,y+80);y+=110;ctx.font="11px Georgia,serif";ctx.fillStyle="#475569";ctx.fillText(t.outOf,cx,y);y+=36;const lw=220,lh=38,lx=cx-lw/2,ly=y;roundRectPath(ctx,lx,ly,lw,lh,19);ctx.fillStyle=meter.color+"22";ctx.fill();ctx.strokeStyle=meter.color+"88";ctx.lineWidth=1;ctx.stroke();ctx.font="bold 15px Georgia,serif";ctx.fillStyle=meter.color;ctx.fillText(meter.label,cx,ly+25);y+=58;const bx=60,by=y,bw=SIZE-120,bh=8;const grad=ctx.createLinearGradient(bx,0,bx+bw,0);grad.addColorStop(0,"#60a5fa");grad.addColorStop(0.25,"#34d399");grad.addColorStop(0.5,"#fbbf24");grad.addColorStop(0.75,"#f97316");grad.addColorStop(1,"#e879f9");roundRectPath(ctx,bx,by,bw,bh,4);ctx.fillStyle=grad;ctx.fill();const dotX=bx+(meter.level/10)*bw;ctx.beginPath();ctx.arc(dotX,by+bh/2,10,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle=meter.color;ctx.lineWidth=3;ctx.stroke();y+=28;ctx.font="11px Georgia,serif";ctx.fillStyle="#475569";ctx.textAlign="left";ctx.fillText(t.freeSpirit,bx,y);ctx.textAlign="right";ctx.fillText(t.conventional,bx+bw,y);y+=36;ctx.textAlign="center";ctx.font="13px Georgia,serif";ctx.fillStyle="#64748b";wrapText(ctx,meter.desc,cx,y,460,20);return canvas;}
 
-function getCategoryScore(catId, questions, answers) {
-  const qs = questions.filter(q => q.cat === catId);
-  let total = 0, count = 0;
-  for (const q of qs) {
-    const val = answers[q.id];
-    if (val === undefined) continue;
-    total += scoreQuestion(q, val); count++;
-  }
-  return count === 0 ? null : (total / count) * 10;
-}
+const SWIPE_EXIT_DELAY=SWIPE_EXIT_MS;
 
-function getMeter(score, t) {
-  const s = Math.round(score * 10) / 10;
-  return t.meter.find(m => score <= m.max) || t.meter[t.meter.length - 1];
-}
-
-function getScoringDirection(question, answer, t) {
-  const pushesConventional = question.reverse ? answer === 0 : answer === 1;
-  return pushesConventional
-    ? { label: t.towardConv, color:"#e879f9", dir:"right" }
-    : { label: t.towardFree, color:"#60a5fa", dir:"left"  };
-}
-
-// ── Canvas share card ─────────────────────────────────────────────────────────
-function roundRectPath(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
-  ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
-  ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
-  ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
-}
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(" "); let line = "";
-  for (const word of words) {
-    const test = line ? line + " " + word : word;
-    if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line, x, y); line = word; y += lineHeight; }
-    else { line = test; }
-  }
-  if (line) ctx.fillText(line, x, y);
-}
-function drawShareCard(meter, name, t) {
-  const SIZE = 600;
-  const canvas = document.createElement("canvas");
-  canvas.width = SIZE; canvas.height = SIZE;
-  const ctx = canvas.getContext("2d");
-  const bg = ctx.createRadialGradient(SIZE*0.3,0,0,SIZE*0.3,0,SIZE*1.1);
-  bg.addColorStop(0,"#1a2744"); bg.addColorStop(1,"#080d18");
-  ctx.fillStyle = bg; ctx.fillRect(0,0,SIZE,SIZE);
-  ctx.strokeStyle = meter.color+"44"; ctx.lineWidth=2; ctx.strokeRect(1,1,SIZE-2,SIZE-2);
-  const cx=SIZE/2; let y=60;
-  ctx.font="40px serif"; ctx.textAlign="center"; ctx.fillText("📏",cx,y); y+=50;
-  ctx.font="bold 13px Georgia,serif"; ctx.fillStyle="#475569";
-  ctx.fillText("S P I E S S - O - M E T E R",cx,y); y+=36;
-  if (name) { ctx.font="16px Georgia,serif"; ctx.fillStyle="#94a3b8"; ctx.fillText(name,cx,y); y+=32; }
-  ctx.font="bold 100px Georgia,serif"; ctx.fillStyle=meter.color; ctx.fillText(meter.level.toFixed(1),cx,y+80); y+=110;
-  ctx.font="11px Georgia,serif"; ctx.fillStyle="#475569"; ctx.fillText(t.outOf,cx,y); y+=36;
-  const lw=220,lh=38,lx=cx-lw/2,ly=y;
-  roundRectPath(ctx,lx,ly,lw,lh,19); ctx.fillStyle=meter.color+"22"; ctx.fill();
-  ctx.strokeStyle=meter.color+"88"; ctx.lineWidth=1; ctx.stroke();
-  ctx.font="bold 15px Georgia,serif"; ctx.fillStyle=meter.color; ctx.fillText(meter.label,cx,ly+25); y+=58;
-  const bx=60,by=y,bw=SIZE-120,bh=8;
-  const grad=ctx.createLinearGradient(bx,0,bx+bw,0);
-  grad.addColorStop(0,"#60a5fa"); grad.addColorStop(0.25,"#34d399");
-  grad.addColorStop(0.5,"#fbbf24"); grad.addColorStop(0.75,"#f97316"); grad.addColorStop(1,"#e879f9");
-  roundRectPath(ctx,bx,by,bw,bh,4); ctx.fillStyle=grad; ctx.fill();
-  const dotX=bx+(meter.level/10)*bw;
-  ctx.beginPath(); ctx.arc(dotX,by+bh/2,10,0,Math.PI*2);
-  ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle=meter.color; ctx.lineWidth=3; ctx.stroke(); y+=28;
-  ctx.font="11px Georgia,serif"; ctx.fillStyle="#475569";
-  ctx.textAlign="left"; ctx.fillText(t.freeSpirit,bx,y);
-  ctx.textAlign="right"; ctx.fillText(t.conventional,bx+bw,y); y+=36;
-  ctx.textAlign="center"; ctx.font="13px Georgia,serif"; ctx.fillStyle="#64748b";
-  wrapText(ctx,meter.desc,cx,y,460,20);
-  return canvas;
-}
-
-// ── SwipeCard ─────────────────────────────────────────────────────────────────
-const SWIPE_EXIT_DELAY = SWIPE_EXIT_MS;
-
-function SwipeCard({ question, catInfo, onSwipe, index, total, isFirst, t }) {
-  const startX = useRef(null), currentX = useRef(0);
-  const locked  = useRef(false); // prevents double-fire during exit animation
-  const [dragging, setDragging] = useState(false);
-  const [offset,   setOffset]   = useState(0);
-  const [exiting,  setExiting]  = useState(null);
-
-  const handleStart = useCallback(x => { startX.current = x; setDragging(true); }, []);
-  const handleMove  = useCallback(x => {
-    if (startX.current === null) return;
-    const dx = x - startX.current;
-    currentX.current = dx; setOffset(dx);
-  }, []);
-  const handleEnd = useCallback(() => {
-    if (locked.current) return;
-    setDragging(false);
-    const dx = currentX.current;
-    if (dx > SWIPE_THRESHOLD) {
-      locked.current = true; setExiting("right");
-      setTimeout(() => { onSwipe(1); locked.current = false; }, SWIPE_EXIT_DELAY);
-    } else if (dx < -SWIPE_THRESHOLD) {
-      locked.current = true; setExiting("left");
-      setTimeout(() => { onSwipe(0); locked.current = false; }, SWIPE_EXIT_DELAY);
-    } else { setOffset(0); }
-    startX.current = null; currentX.current = 0;
-  }, [onSwipe]);
-
-  const rotation   = offset / 18;
-  const yesOpacity = Math.min(1, Math.max(0, (offset  - 20) / 40));
-  const noOpacity  = Math.min(1, Math.max(0, (-offset - 20) / 40));
-  const transformStyle = exiting === "right" ? "translateX(110vw) rotate(25deg)"
-                       : exiting === "left"  ? "translateX(-110vw) rotate(-25deg)"
-                       : `translateX(${offset}px) rotate(${rotation}deg)`;
-
-  return (
-    <div
-      className={isFirst ? "swipe-hint" : ""}
-      onMouseDown={e  => handleStart(e.clientX)}
-      onMouseMove={e  => { if (dragging) handleMove(e.clientX); }}
-      onMouseUp={handleEnd} onMouseLeave={handleEnd}
-      onTouchStart={e => { handleStart(e.touches[0].clientX); }}
-      onTouchMove={e  => { e.preventDefault(); handleMove(e.touches[0].clientX); }}
-      onTouchEnd={e   => { handleEnd(); }}
-      style={{ position:"absolute", width:"calc(100% - 48px)", maxWidth:"420px",
-        transform:transformStyle,
-        transition: dragging ? "none" : `transform ${SWIPE_EXIT_DELAY}ms cubic-bezier(0.25,0.46,0.45,0.94)`,
-        cursor:dragging?"grabbing":"grab", userSelect:"none", touchAction:"none", zIndex:20 }}
-    >
-      <div style={{ background:"linear-gradient(160deg,#1e2d45 0%,#0d1b2e 100%)",
-        border:`1px solid ${offset>20?"rgba(167,139,250,0.4)":offset<-20?"rgba(148,163,184,0.3)":"rgba(255,255,255,0.1)"}`,
-        borderRadius:"20px", padding:"28px 24px 22px", boxShadow:"0 20px 60px rgba(0,0,0,0.6)",
-        minHeight:"280px", display:"flex", flexDirection:"column", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:"18px", left:"18px", opacity:yesOpacity, transform:"rotate(-15deg)" }}>
-          <div style={{ border:`3px solid ${MORE_CLR}`, borderRadius:"8px", padding:"3px 12px", color:MORE_CLR, fontWeight:"900", fontSize:"13px", letterSpacing:"1px" }}>{t.stampYes}</div>
+function SwipeCard({question,catInfo,onSwipe,index,total,isFirst,t}){
+  const startX=useRef(null),currentX=useRef(0);
+  const locked=useRef(false);
+  const [dragging,setDragging]=useState(false);
+  const [offset,setOffset]=useState(0);
+  const [exiting,setExiting]=useState(null);
+  const handleStart=useCallback(x=>{startX.current=x;setDragging(true);},[]);
+  const handleMove=useCallback(x=>{if(startX.current===null)return;const dx=x-startX.current;currentX.current=dx;setOffset(dx);},[]);
+  const handleEnd=useCallback(()=>{if(locked.current)return;setDragging(false);const dx=currentX.current;if(dx>SWIPE_THRESHOLD){locked.current=true;setExiting("right");setTimeout(()=>{onSwipe(1);locked.current=false;},SWIPE_EXIT_DELAY);}else if(dx<-SWIPE_THRESHOLD){locked.current=true;setExiting("left");setTimeout(()=>{onSwipe(0);locked.current=false;},SWIPE_EXIT_DELAY);}else{setOffset(0);}startX.current=null;currentX.current=0;},[onSwipe]);
+  const rotation=offset/18;
+  const yesOpacity=Math.min(1,Math.max(0,(offset-20)/40));
+  const noOpacity=Math.min(1,Math.max(0,(-offset-20)/40));
+  const transformStyle=exiting==="right"?"translateX(110vw) rotate(25deg)":exiting==="left"?"translateX(-110vw) rotate(-25deg)":`translateX(${offset}px) rotate(${rotation}deg)`;
+  return(
+    <div className={isFirst?"swipe-hint":""} onMouseDown={e=>handleStart(e.clientX)} onMouseMove={e=>{if(dragging)handleMove(e.clientX);}} onMouseUp={handleEnd} onMouseLeave={handleEnd} onTouchStart={e=>{handleStart(e.touches[0].clientX);}} onTouchMove={e=>{e.preventDefault();handleMove(e.touches[0].clientX);}} onTouchEnd={e=>{handleEnd();}} style={{position:"absolute",width:"calc(100% - 48px)",maxWidth:"420px",transform:transformStyle,transition:dragging?"none":`transform ${SWIPE_EXIT_DELAY}ms cubic-bezier(0.25,0.46,0.45,0.94)`,cursor:dragging?"grabbing":"grab",userSelect:"none",touchAction:"none",zIndex:20}}>
+      <div style={{background:"linear-gradient(160deg,#1e2d45 0%,#0d1b2e 100%)",border:`1px solid ${offset>20?"rgba(167,139,250,0.4)":offset<-20?"rgba(148,163,184,0.3)":"rgba(255,255,255,0.1)"}`,borderRadius:"20px",padding:"28px 24px 22px",boxShadow:"0 20px 60px rgba(0,0,0,0.6)",minHeight:"280px",display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"18px",left:"18px",opacity:yesOpacity,transform:"rotate(-15deg)"}}><div style={{border:`3px solid ${MORE_CLR}`,borderRadius:"8px",padding:"3px 12px",color:MORE_CLR,fontWeight:"900",fontSize:"13px",letterSpacing:"1px"}}>{t.stampYes}</div></div>
+        <div style={{position:"absolute",top:"18px",right:"18px",opacity:noOpacity,transform:"rotate(15deg)"}}><div style={{border:`3px solid ${LESS_CLR}`,borderRadius:"8px",padding:"3px 12px",color:LESS_CLR,fontWeight:"900",fontSize:"13px",letterSpacing:"1px"}}>{t.stampNo}</div></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+          <span style={{fontSize:"11px",background:"rgba(167,139,250,0.08)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:"20px",padding:"3px 10px",color:ACCENT}}>{catInfo?.emoji} {catInfo?.label}</span>
+          <span style={{fontSize:"11px",color:"#475569"}}>{index+1} / {total}</span>
         </div>
-        <div style={{ position:"absolute", top:"18px", right:"18px", opacity:noOpacity, transform:"rotate(15deg)" }}>
-          <div style={{ border:`3px solid ${LESS_CLR}`, borderRadius:"8px", padding:"3px 12px", color:LESS_CLR, fontWeight:"900", fontSize:"13px", letterSpacing:"1px" }}>{t.stampNo}</div>
-        </div>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
-          <span style={{ fontSize:"11px", background:"rgba(167,139,250,0.08)", border:"1px solid rgba(167,139,250,0.2)", borderRadius:"20px", padding:"3px 10px", color:ACCENT }}>
-            {catInfo?.emoji} {catInfo?.label}
-          </span>
-          <span style={{ fontSize:"11px", color:"#475569" }}>{index+1} / {total}</span>
-        </div>
-        <p style={{ fontSize:"16px", lineHeight:"1.75", color:"#e2e8f0", flex:1, margin:"0 0 10px", fontStyle:"italic" }}>„{question.text}"</p>
-        <p style={{ fontSize:"12px", lineHeight:"1.5", color:"#475569", margin:"0 0 20px" }}>{question.example}</p>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:"11px", color:"#2d3f55" }}>
-          <span>{t.swipeLeft}</span><span>{t.swipeRight}</span>
-        </div>
+        <p style={{fontSize:"16px",lineHeight:"1.75",color:"#e2e8f0",flex:1,margin:"0 0 10px",fontStyle:"italic"}}>„{question.text}"</p>
+        <p style={{fontSize:"12px",lineHeight:"1.5",color:"#475569",margin:"0 0 20px"}}>{question.example}</p>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:"#2d3f55"}}><span>{t.swipeLeft}</span><span>{t.swipeRight}</span></div>
       </div>
     </div>
   );
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
-function App() {
-  const [lang,         setLang]         = useState("de");
-  const [screen,       setScreen]       = useState("intro");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers,      setAnswers]      = useState({});
-  const [lastAnswer,   setLastAnswer]   = useState(null);
-  const [expandedCats, setExpandedCats] = useState({});
-  const [playerName,   setPlayerName]   = useState("");
-  const [capturing,    setCapturing]    = useState(false);
+function TypeComparison({meter,globalScore,t}){
+  const [selected,setSelected]=useState(null);
+  const typeRanges=[{min:0,max:2,midpoint:1},{min:2,max:4,midpoint:3},{min:4,max:6,midpoint:5},{min:6,max:8,midpoint:7},{min:8,max:10,midpoint:9}];
+  const myTypeIndex=t.meter.findIndex(m=>globalScore<=m.max);
+  return(
+    <div style={{marginBottom:"28px"}}>
+      <h3 style={{fontSize:"11px",letterSpacing:"3px",color:"#475569",textTransform:"uppercase",marginBottom:"16px"}}>{t.allTypes}</h3>
+      <div style={{position:"relative",marginBottom:"32px"}}>
+        <div style={{height:"6px",borderRadius:"3px",background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)"}}/>
+        {t.meter.map((type,i)=>{
+          const range=typeRanges[i];
+          const pct=(range.midpoint/10)*100;
+          const isMe=i===myTypeIndex;
+          const isSel=selected===i;
+          return(<div key={i} onClick={()=>setSelected(isSel?null:i)} style={{position:"absolute",top:"-8px",left:`calc(${pct}% - 11px)`,width:"22px",height:"22px",borderRadius:"50%",background:isMe?type.color:"#0d1b2e",border:`2px solid ${type.color}`,cursor:"pointer",boxShadow:isMe?`0 0 12px ${type.color}80`:"none",transform:isSel?"scale(1.2)":"scale(1)",transition:"transform 0.15s",zIndex:isMe?10:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {isMe&&<span style={{fontSize:"9px",color:"#0d1b2e",fontWeight:"bold"}}>●</span>}
+          </div>);
+        })}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+        {t.meter.map((type,i)=>{
+          const isMe=i===myTypeIndex;
+          const isSel=selected===i;
+          const range=typeRanges[i];
+          const show=isMe||isSel;
+          return(
+            <div key={i} onClick={()=>setSelected(isSel?null:i)} style={{background:isMe?`${type.color}10`:"rgba(255,255,255,0.02)",border:`1px solid ${isMe?type.color+"60":isSel?type.color+"40":"rgba(255,255,255,0.06)"}`,borderRadius:"12px",padding:"12px 16px",cursor:"pointer",opacity:(!isMe&&!isSel&&selected!==null)?0.5:1,transition:"all 0.2s"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                <div style={{width:"10px",height:"10px",borderRadius:"50%",background:type.color,flexShrink:0}}/>
+                <span style={{fontSize:"13px",color:isMe?type.color:"#cbd5e1",fontWeight:isMe?"bold":"normal",flex:1}}>{type.label}</span>
+                <span style={{fontSize:"11px",color:"#475569"}}>{t.rangeLabel}: {range.min}–{range.max}</span>
+                {isMe&&<span style={{fontSize:"10px",background:`${type.color}20`,border:`1px solid ${type.color}60`,borderRadius:"10px",padding:"2px 8px",color:type.color,fontWeight:"bold",whiteSpace:"nowrap"}}>{t.yourType}</span>}
+                <span style={{color:"#334155",fontSize:"11px",transform:isSel?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▾</span>
+              </div>
+              {show&&(
+                <div className="fade-in" style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+                  <p style={{fontSize:"12px",color:"#94a3b8",lineHeight:"1.6"}}>{type.desc}</p>
+                  {isMe&&(
+                    <div style={{marginTop:"8px",display:"flex",alignItems:"center",gap:"8px"}}>
+                      <div style={{flex:1,height:"4px",background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)",borderRadius:"2px",position:"relative"}}>
+                        <div style={{position:"absolute",top:"-5px",left:`calc(${(globalScore/10)*100}% - 6px)`,width:"12px",height:"12px",background:"#fff",borderRadius:"50%",border:`2px solid ${type.color}`}}/>
+                      </div>
+                      <span style={{fontSize:"11px",color:type.color,whiteSpace:"nowrap",fontWeight:"bold"}}>{globalScore.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-  const t         = T[lang];
-  const questions = t.questions;
-  const cats      = t.categories;
-  const total     = questions.length;
-  const current   = questions[currentIndex];
-  const progress  = (currentIndex / total) * 100;
-
-  // Reset quiz when language changes
-  const switchLang = (code) => {
-    setLang(code);
-    setScreen("intro");
-    setCurrentIndex(0);
-    setAnswers({});
-    setLastAnswer(null);
-    setExpandedCats({});
-  };
-
-  const handleSwipe = useCallback(val => {
-    setLastAnswer({ id: current.id, index: currentIndex });
-    setAnswers(a => ({ ...a, [current.id]: val }));
-    setCurrentIndex(i => {
-      if (i + 1 >= total) { setTimeout(() => setScreen("result"), 10); return i; }
-      return i + 1;
-    });
-  }, [current, currentIndex, total]);
-
-  const handleUndo = () => {
-    if (!lastAnswer) return;
-    setAnswers(a => { const n={...a}; delete n[lastAnswer.id]; return n; });
-    setCurrentIndex(lastAnswer.index);
-    setLastAnswer(null);
-    if (screen === "result") setScreen("quiz");
-  };
-
-  const handleCapture = () => {
-    if (capturing || !meter) return;
-    setCapturing(true);
-    setTimeout(() => {
-      try {
-        const canvas = drawShareCard({...meter, level: globalScore}, playerName, t);
-        const link = document.createElement("a");
-        link.download = "spiesometer-ergebnis.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      } catch(e) { console.error(e); }
-      setCapturing(false);
-    }, 50);
-  };
-
-  const globalScore = screen === "result" ? getRawScore(questions, answers) : null;
-  const meter       = globalScore !== null ? getMeter(globalScore, t) : null;
-  const toggleCat   = catId => setExpandedCats(p => ({ ...p, [catId]: !p[catId] }));
-  const resetAll    = () => { setAnswers({}); setCurrentIndex(0); setLastAnswer(null); setExpandedCats({}); setScreen("intro"); };
-
-  // Language dropdown – only shown on intro screen
-  const [langOpen, setLangOpen] = useState(false);
-  const currentLang = LANGS.find(l => l.code === lang);
-  const LangDropdown = () => (
-    <div style={{ position:"relative" }}>
-      <button
-        onClick={() => setLangOpen(o => !o)}
-        style={{ display:"flex", alignItems:"center", gap:"8px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:"10px", padding:"8px 14px", cursor:"pointer", color:"#e2e8f0", fontSize:"14px" }}>
-        <span>{currentLang.flag}</span>
-        <span style={{ fontSize:"11px", color:"#94a3b8", letterSpacing:"1px" }}>{currentLang.name}</span>
-        <span style={{ fontSize:"10px", color:"#475569", marginLeft:"2px" }}>{langOpen ? "▲" : "▼"}</span>
+function App(){
+  const [lang,setLang]=useState("de");
+  const [screen,setScreen]=useState("intro");
+  const [currentIndex,setCurrentIndex]=useState(0);
+  const [answers,setAnswers]=useState({});
+  const [lastAnswer,setLastAnswer]=useState(null);
+  const [expandedCats,setExpandedCats]=useState({});
+  const [playerName,setPlayerName]=useState("");
+  const [capturing,setCapturing]=useState(false);
+  const t=T[lang];
+  const questions=t.questions;
+  const cats=t.categories;
+  const total=questions.length;
+  const current=questions[currentIndex];
+  const progress=(currentIndex/total)*100;
+  const switchLang=(code)=>{setLang(code);setScreen("intro");setCurrentIndex(0);setAnswers({});setLastAnswer(null);setExpandedCats({});};
+  const handleSwipe=useCallback(val=>{setLastAnswer({id:current.id,index:currentIndex});setAnswers(a=>({...a,[current.id]:val}));setCurrentIndex(i=>{if(i+1>=total){setTimeout(()=>setScreen("result"),10);return i;}return i+1;});},[current,currentIndex,total]);
+  const handleUndo=()=>{if(!lastAnswer)return;setAnswers(a=>{const n={...a};delete n[lastAnswer.id];return n;});setCurrentIndex(lastAnswer.index);setLastAnswer(null);if(screen==="result")setScreen("quiz");};
+  const handleCapture=()=>{if(capturing||!meter)return;setCapturing(true);setTimeout(()=>{try{const canvas=drawShareCard({...meter,level:globalScore},playerName,t);const link=document.createElement("a");link.download="spiesometer-ergebnis.png";link.href=canvas.toDataURL("image/png");link.click();}catch(e){console.error(e);}setCapturing(false);},50);};
+  const globalScore=screen==="result"?getRawScore(questions,answers):null;
+  const meter=globalScore!==null?getMeter(globalScore,t):null;
+  const toggleCat=catId=>setExpandedCats(p=>({...p,[catId]:!p[catId]}));
+  const resetAll=()=>{setAnswers({});setCurrentIndex(0);setLastAnswer(null);setExpandedCats({});setScreen("intro");};
+  const [langOpen,setLangOpen]=useState(false);
+  const currentLang=LANGS.find(l=>l.code===lang);
+  const LangDropdown=()=>(
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setLangOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:"8px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"8px 14px",cursor:"pointer",color:"#e2e8f0",fontSize:"14px"}}>
+        <span>{currentLang.flag}</span><span style={{fontSize:"11px",color:"#94a3b8",letterSpacing:"1px"}}>{currentLang.name}</span><span style={{fontSize:"10px",color:"#475569",marginLeft:"2px"}}>{langOpen?"▲":"▼"}</span>
       </button>
-      {langOpen && (
-        <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, background:"#1e293b", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"10px", overflow:"hidden", zIndex:100, minWidth:"130px", boxShadow:"0 8px 24px rgba(0,0,0,0.5)" }}>
-          {LANGS.map(l => (
-            <button key={l.code} onClick={() => { switchLang(l.code); setLangOpen(false); }}
-              style={{ display:"flex", alignItems:"center", gap:"10px", width:"100%", padding:"10px 16px", background: lang===l.code ? "rgba(167,139,250,0.12)" : "transparent", border:"none", borderBottom:"1px solid rgba(255,255,255,0.05)", cursor:"pointer", color: lang===l.code ? ACCENT : "#cbd5e1", fontSize:"13px", textAlign:"left" }}>
-              <span style={{ fontSize:"18px" }}>{l.flag}</span>
-              <span>{l.name}</span>
-              {lang===l.code && <span style={{ marginLeft:"auto", fontSize:"11px", color:ACCENT }}>✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
+      {langOpen&&(<div style={{position:"absolute",top:"calc(100% + 6px)",right:0,background:"#1e293b",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"10px",overflow:"hidden",zIndex:100,minWidth:"130px",boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
+        {LANGS.map(l=>(<button key={l.code} onClick={()=>{switchLang(l.code);setLangOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",padding:"10px 16px",background:lang===l.code?"rgba(167,139,250,0.12)":"transparent",border:"none",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",color:lang===l.code?ACCENT:"#cbd5e1",fontSize:"13px",textAlign:"left"}}>
+          <span style={{fontSize:"18px"}}>{l.flag}</span><span>{l.name}</span>{lang===l.code&&<span style={{marginLeft:"auto",fontSize:"11px",color:ACCENT}}>✓</span>}
+        </button>))}
+      </div>)}
     </div>
   );
-
-  return (
-    <div style={{ height:"100%", display:"flex", flexDirection:"column",
-      background:"radial-gradient(ellipse at 30% 0%,#1a2744 0%,#080d18 70%)",
-      fontFamily:"Georgia,'Times New Roman',serif", color:"#e8e0d0", overflow:"hidden" }}>
-
-      {/* ── Header ── */}
-      <div style={{ flexShrink:0, padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(255,255,255,0.05)", gap:"12px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"10px", flexShrink:0 }}>
-          <span style={{ fontSize:"20px" }}>📏</span>
-          <div>
-            <div style={{ fontSize:"15px", fontWeight:"bold", letterSpacing:"2px", color:ACCENT, lineHeight:1 }}>SPIE&szlig;-O-METER</div>
-            <div style={{ fontSize:"9px", letterSpacing:"2px", color:"#475569", textTransform:"uppercase" }}>{t.appSubtitle}</div>
-          </div>
+  return(
+    <div style={{height:"100%",display:"flex",flexDirection:"column",background:"radial-gradient(ellipse at 30% 0%,#1a2744 0%,#080d18 70%)",fontFamily:"Georgia,'Times New Roman',serif",color:"#e8e0d0",overflow:"hidden"}}>
+      <div style={{flexShrink:0,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.05)",gap:"12px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px",flexShrink:0}}>
+          <span style={{fontSize:"20px"}}>📏</span>
+          <div><div style={{fontSize:"15px",fontWeight:"bold",letterSpacing:"2px",color:ACCENT,lineHeight:1}}>SPIE&szlig;-O-METER</div><div style={{fontSize:"9px",letterSpacing:"2px",color:"#475569",textTransform:"uppercase"}}>{t.appSubtitle}</div></div>
         </div>
-        {screen === "quiz" && (
-          <div style={{ textAlign:"right" }}>
-            <div style={{ fontSize:"12px", color:"#475569", marginBottom:"4px" }}>{currentIndex} / {total}</div>
-            <div style={{ width:"80px", height:"3px", background:"rgba(255,255,255,0.06)", borderRadius:"2px" }}>
-              <div style={{ height:"100%", width:`${progress}%`, background:ACCENT, borderRadius:"2px", transition:"width 0.2s" }} />
-            </div>
-          </div>
-        )}
+        {screen==="quiz"&&(<div style={{textAlign:"right"}}><div style={{fontSize:"12px",color:"#475569",marginBottom:"4px"}}>{currentIndex} / {total}</div><div style={{width:"80px",height:"3px",background:"rgba(255,255,255,0.06)",borderRadius:"2px"}}><div style={{height:"100%",width:`${progress}%`,background:ACCENT,borderRadius:"2px",transition:"width 0.2s"}}/></div></div>)}
       </div>
 
-      {/* ── INTRO ── */}
-      {screen === "intro" && (
-        <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px", textAlign:"center", position:"relative" }}>
-          {/* Language selector – top right of intro */}
-          <div style={{ position:"absolute", top:"16px", right:"20px", zIndex:10 }}>
-            <LangDropdown />
+      {screen==="intro"&&(
+        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",textAlign:"center",position:"relative"}}>
+          <div style={{position:"absolute",top:"16px",right:"20px",zIndex:10}}><LangDropdown/></div>
+          <div style={{fontSize:"56px",marginBottom:"16px"}}>📏</div>
+          <h1 style={{fontSize:"24px",fontWeight:"bold",color:ACCENT,letterSpacing:"1px",marginBottom:"10px"}}>Spieß-O-Meter</h1>
+          <p style={{fontSize:"14px",lineHeight:"1.8",color:"#64748b",maxWidth:"340px",marginBottom:"24px"}}><strong style={{color:"#94a3b8"}}>{total}</strong> {t.tagline}</p>
+          <div style={{marginBottom:"24px",width:"100%",maxWidth:"300px"}}>
+            <input type="text" placeholder={t.namePlaceholder} value={playerName} onChange={e=>setPlayerName(e.target.value)} style={{width:"100%",padding:"11px 16px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"10px",color:"#e2e8f0",fontSize:"14px",fontFamily:"Georgia,serif",outline:"none",textAlign:"center"}}/>
           </div>
-          <div style={{ fontSize:"56px", marginBottom:"16px" }}>📏</div>
-          <h1 style={{ fontSize:"24px", fontWeight:"bold", color:ACCENT, letterSpacing:"1px", marginBottom:"10px" }}>Spieß-O-Meter</h1>
-          <p style={{ fontSize:"14px", lineHeight:"1.8", color:"#64748b", maxWidth:"340px", marginBottom:"24px" }}>
-            <strong style={{ color:"#94a3b8" }}>{total}</strong> {t.tagline}
-          </p>
-          <div style={{ marginBottom:"24px", width:"100%", maxWidth:"300px" }}>
-            <input type="text" placeholder={t.namePlaceholder} value={playerName} onChange={e => setPlayerName(e.target.value)}
-              style={{ width:"100%", padding:"11px 16px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"10px", color:"#e2e8f0", fontSize:"14px", fontFamily:"Georgia,serif", outline:"none", textAlign:"center" }} />
+          <div style={{display:"flex",alignItems:"center",marginBottom:"28px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"14px",padding:"16px 20px",maxWidth:"300px",width:"100%"}}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",minWidth:"64px"}}><div style={{width:"38px",height:"38px",borderRadius:"50%",background:`${LESS_CLR}15`,border:`2px solid ${LESS_CLR}50`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",color:LESS_CLR}}>✗</div><span style={{fontSize:"10px",color:LESS_CLR,textAlign:"center",lineHeight:1.3}}>{t.btnLess}</span></div>
+            <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",padding:"0 8px"}}><div style={{fontSize:"17px",color:"#2d3f55",letterSpacing:"2px"}}>← →</div><div style={{fontSize:"10px",color:"#2d3f55"}}>{t.orTap}</div></div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",minWidth:"64px"}}><div style={{width:"38px",height:"38px",borderRadius:"50%",background:`${MORE_CLR}15`,border:`2px solid ${MORE_CLR}50`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",color:MORE_CLR}}>✓</div><span style={{fontSize:"10px",color:MORE_CLR,textAlign:"center",lineHeight:1.3}}>{t.btnMore}</span></div>
           </div>
-          {/* Swipe instruction */}
-          <div style={{ display:"flex", alignItems:"center", marginBottom:"28px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"14px", padding:"16px 20px", maxWidth:"300px", width:"100%" }}>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"6px", minWidth:"64px" }}>
-              <div style={{ width:"38px", height:"38px", borderRadius:"50%", background:`${LESS_CLR}15`, border:`2px solid ${LESS_CLR}50`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px", color:LESS_CLR }}>✗</div>
-              <span style={{ fontSize:"10px", color:LESS_CLR, textAlign:"center", lineHeight:1.3 }}>{t.btnLess}</span>
-            </div>
-            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"4px", padding:"0 8px" }}>
-              <div style={{ fontSize:"17px", color:"#2d3f55", letterSpacing:"2px" }}>← →</div>
-              <div style={{ fontSize:"10px", color:"#2d3f55" }}>{t.orTap}</div>
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"6px", minWidth:"64px" }}>
-              <div style={{ width:"38px", height:"38px", borderRadius:"50%", background:`${MORE_CLR}15`, border:`2px solid ${MORE_CLR}50`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px", color:MORE_CLR }}>✓</div>
-              <span style={{ fontSize:"10px", color:MORE_CLR, textAlign:"center", lineHeight:1.3 }}>{t.btnMore}</span>
-            </div>
-          </div>
-          <button onClick={() => setScreen("quiz")} style={{ background:`linear-gradient(135deg,${ACCENT},#7c3aed)`, color:"#fff", border:"none", borderRadius:"12px", padding:"13px 40px", fontSize:"15px", fontWeight:"bold", cursor:"pointer", letterSpacing:"1px", boxShadow:`0 6px 24px ${ACCENT}40` }}>
-            {t.startBtn}
-          </button>
+          <button onClick={()=>setScreen("quiz")} style={{background:`linear-gradient(135deg,${ACCENT},#7c3aed)`,color:"#fff",border:"none",borderRadius:"12px",padding:"13px 40px",fontSize:"15px",fontWeight:"bold",cursor:"pointer",letterSpacing:"1px",boxShadow:`0 6px 24px ${ACCENT}40`}}>{t.startBtn}</button>
         </div>
       )}
 
-      {/* ── QUIZ ── */}
-      {screen === "quiz" && current && (() => {
-        const catInfo = cats.find(c => c.id === current.cat);
-        return (
-          <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"16px 24px", position:"relative", overflow:"hidden" }}>
-            {[2,1].map(off => currentIndex + off < total ? (
-              <div key={off} style={{ position:"absolute", width:"calc(100% - 48px)", maxWidth:"420px",
-                background:"linear-gradient(160deg,#1e2d45,#0d1b2e)", border:"1px solid rgba(255,255,255,0.05)",
-                borderRadius:"20px", height:"280px", zIndex:20-off,
-                transform:`translateY(${off*10}px) scale(${1-off*0.04})`, opacity:1-off*0.15 }} />
-            ) : null)}
-
-            <SwipeCard key={`${lang}-${currentIndex}`} question={current} catInfo={catInfo}
-              index={currentIndex} total={total} onSwipe={handleSwipe} isFirst={currentIndex===0} t={t} />
-
-            <div style={{ display:"flex", gap:"24px", marginTop:"310px", zIndex:30, position:"relative", alignItems:"center" }}>
-              <button onClick={() => handleSwipe(0)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:0 }}>
-                <div style={{ width:"54px", height:"54px", borderRadius:"50%", background:`${LESS_CLR}10`, border:`2px solid ${LESS_CLR}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px", color:LESS_CLR }}>✗</div>
-                <span style={{ fontSize:"10px", color:"#475569", textAlign:"center", maxWidth:"60px", lineHeight:1.3 }}>{t.btnLess}</span>
+      {screen==="quiz"&&current&&(()=>{
+        const catInfo=cats.find(c=>c.id===current.cat);
+        return(
+          <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 24px",position:"relative",overflow:"hidden"}}>
+            {[2,1].map(off=>currentIndex+off<total?(<div key={off} style={{position:"absolute",width:"calc(100% - 48px)",maxWidth:"420px",background:"linear-gradient(160deg,#1e2d45,#0d1b2e)",border:"1px solid rgba(255,255,255,0.05)",borderRadius:"20px",height:"280px",zIndex:20-off,transform:`translateY(${off*10}px) scale(${1-off*0.04})`,opacity:1-off*0.15}}/>):null)}
+            <SwipeCard key={`${lang}-${currentIndex}`} question={current} catInfo={catInfo} index={currentIndex} total={total} onSwipe={handleSwipe} isFirst={currentIndex===0} t={t}/>
+            <div style={{display:"flex",gap:"24px",marginTop:"310px",zIndex:30,position:"relative",alignItems:"center"}}>
+              <button onClick={()=>handleSwipe(0)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"5px",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                <div style={{width:"54px",height:"54px",borderRadius:"50%",background:`${LESS_CLR}10`,border:`2px solid ${LESS_CLR}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",color:LESS_CLR}}>✗</div>
+                <span style={{fontSize:"10px",color:"#475569",textAlign:"center",maxWidth:"60px",lineHeight:1.3}}>{t.btnLess}</span>
               </button>
-              {lastAnswer
-                ? <button onClick={handleUndo} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:0 }}>
-                    <div style={{ width:"34px", height:"34px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", color:"#475569" }}>↩</div>
-                    <span style={{ fontSize:"10px", color:"#334155" }}>{t.btnUndo.replace("↩ ","")}</span>
-                  </button>
-                : <div style={{ width:"34px" }} />
-              }
-              <button onClick={() => handleSwipe(1)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:0 }}>
-                <div style={{ width:"54px", height:"54px", borderRadius:"50%", background:`${MORE_CLR}10`, border:`2px solid ${MORE_CLR}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px", color:MORE_CLR }}>✓</div>
-                <span style={{ fontSize:"10px", color:"#475569", textAlign:"center", maxWidth:"60px", lineHeight:1.3 }}>{t.btnMore}</span>
+              {lastAnswer?<button onClick={handleUndo} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"5px",background:"none",border:"none",cursor:"pointer",padding:0}}><div style={{width:"34px",height:"34px",borderRadius:"50%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:"#475569"}}>↩</div><span style={{fontSize:"10px",color:"#334155"}}>{t.btnUndo.replace("↩ ","")}</span></button>:<div style={{width:"34px"}}/>}
+              <button onClick={()=>handleSwipe(1)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"5px",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                <div style={{width:"54px",height:"54px",borderRadius:"50%",background:`${MORE_CLR}10`,border:`2px solid ${MORE_CLR}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",color:MORE_CLR}}>✓</div>
+                <span style={{fontSize:"10px",color:"#475569",textAlign:"center",maxWidth:"60px",lineHeight:1.3}}>{t.btnMore}</span>
               </button>
             </div>
           </div>
         );
       })()}
 
-      {/* ── RESULT ── */}
-      {screen === "result" && meter && (
-        <div style={{ flex:1, overflowY:"auto", padding:"28px 20px", maxWidth:"560px", margin:"0 auto", width:"100%" }}>
-          <div style={{ textAlign:"center", marginBottom:"28px" }}>
-            {playerName && <div style={{ fontSize:"13px", color:"#64748b", marginBottom:"8px" }}>{t.resultFor} {playerName}</div>}
-            <div style={{ fontSize:"12px", letterSpacing:"3px", color:"#475569", textTransform:"uppercase", marginBottom:"14px" }}>{t.resultTitle}</div>
-            <div className="pop-in" style={{ background:"rgba(255,255,255,0.02)", border:`2px solid ${meter.color}`, borderRadius:"20px", padding:"32px 20px", marginBottom:"16px", boxShadow:`0 0 50px ${meter.color}20` }}>
-              <div style={{ fontSize:"64px", fontWeight:"bold", color:meter.color, lineHeight:1, marginBottom:"4px" }}>{globalScore.toFixed(1)}</div>
-              <div style={{ fontSize:"10px", color:"#475569", letterSpacing:"3px", marginBottom:"12px" }}>{t.outOf}</div>
-              <div style={{ display:"inline-block", background:`${meter.color}20`, border:`1px solid ${meter.color}60`, borderRadius:"20px", padding:"5px 18px", fontSize:"14px", color:meter.color, fontWeight:"bold", letterSpacing:"1px", marginBottom:"10px" }}>{meter.label}</div>
-              <p style={{ fontSize:"13px", color:"#94a3b8", lineHeight:"1.7", margin:"0 auto", maxWidth:"300px" }}>{meter.desc}</p>
+      {screen==="result"&&meter&&(
+        <div style={{flex:1,overflowY:"auto",padding:"28px 20px",maxWidth:"560px",margin:"0 auto",width:"100%"}}>
+          <div style={{textAlign:"center",marginBottom:"28px"}}>
+            {playerName&&<div style={{fontSize:"13px",color:"#64748b",marginBottom:"8px"}}>{t.resultFor} {playerName}</div>}
+            <div style={{fontSize:"12px",letterSpacing:"3px",color:"#475569",textTransform:"uppercase",marginBottom:"14px"}}>{t.resultTitle}</div>
+            <div className="pop-in" style={{background:"rgba(255,255,255,0.02)",border:`2px solid ${meter.color}`,borderRadius:"20px",padding:"32px 20px",marginBottom:"16px",boxShadow:`0 0 50px ${meter.color}20`}}>
+              <div style={{fontSize:"64px",fontWeight:"bold",color:meter.color,lineHeight:1,marginBottom:"4px"}}>{globalScore.toFixed(1)}</div>
+              <div style={{fontSize:"10px",color:"#475569",letterSpacing:"3px",marginBottom:"12px"}}>{t.outOf}</div>
+              <div style={{display:"inline-block",background:`${meter.color}20`,border:`1px solid ${meter.color}60`,borderRadius:"20px",padding:"5px 18px",fontSize:"14px",color:meter.color,fontWeight:"bold",letterSpacing:"1px",marginBottom:"10px"}}>{meter.label}</div>
+              <p style={{fontSize:"13px",color:"#94a3b8",lineHeight:"1.7",margin:"0 auto",maxWidth:"300px"}}>{meter.desc}</p>
             </div>
-            <div style={{ height:"8px", borderRadius:"4px", background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)", position:"relative", marginBottom:"6px" }}>
-              <div style={{ position:"absolute", top:"-6px", left:`calc(${(globalScore/10)*100}% - 10px)`, width:"20px", height:"20px", background:"#fff", borderRadius:"50%", border:`3px solid ${meter.color}`, boxShadow:"0 2px 8px rgba(0,0,0,0.5)" }} />
+            <div style={{height:"8px",borderRadius:"4px",background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)",position:"relative",marginBottom:"6px"}}>
+              <div style={{position:"absolute",top:"-6px",left:`calc(${(globalScore/10)*100}% - 10px)`,width:"20px",height:"20px",background:"#fff",borderRadius:"50%",border:`3px solid ${meter.color}`,boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}/>
             </div>
-            <div style={{ display:"flex", justifyContent:"space-between", fontSize:"10px", color:"#334155", marginBottom:"20px" }}>
-              <span>{t.freeSpirit}</span><span>{t.conventional}</span>
-            </div>
-            <div style={{ display:"flex", gap:"10px", justifyContent:"center", flexWrap:"wrap" }}>
-              <button onClick={handleCapture} disabled={capturing} style={{ background: capturing?"rgba(255,255,255,0.05)":`linear-gradient(135deg,${ACCENT},#7c3aed)`, color: capturing?"#475569":"#fff", border:"none", borderRadius:"10px", padding:"11px 24px", fontSize:"13px", fontWeight:"bold", cursor: capturing?"not-allowed":"pointer", letterSpacing:"0.5px" }}>
-                {capturing ? t.saving : t.saveImg}
-              </button>
-              {lastAnswer && (
-                <button onClick={handleUndo} style={{ background:"transparent", color:"#475569", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"10px", padding:"11px 20px", fontSize:"13px", cursor:"pointer" }}>
-                  {t.undoLast}
-                </button>
-              )}
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#334155",marginBottom:"20px"}}><span>{t.freeSpirit}</span><span>{t.conventional}</span></div>
+            <div style={{display:"flex",gap:"10px",justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={handleCapture} disabled={capturing} style={{background:capturing?"rgba(255,255,255,0.05)":`linear-gradient(135deg,${ACCENT},#7c3aed)`,color:capturing?"#475569":"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontSize:"13px",fontWeight:"bold",cursor:capturing?"not-allowed":"pointer",letterSpacing:"0.5px"}}>{capturing?t.saving:t.saveImg}</button>
+              {lastAnswer&&(<button onClick={handleUndo} style={{background:"transparent",color:"#475569",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"10px",padding:"11px 20px",fontSize:"13px",cursor:"pointer"}}>{t.undoLast}</button>)}
             </div>
           </div>
 
-          <h3 style={{ fontSize:"11px", letterSpacing:"3px", color:"#475569", textTransform:"uppercase", marginBottom:"12px" }}>{t.byCategory}</h3>
-          {cats.map(cat => {
-            const s = getCategoryScore(cat.id, questions, answers);
-            if (s === null) return null;
-            const bc = s < 3.5 ? "#60a5fa" : s < 6.5 ? "#fbbf24" : "#e879f9";
-            const isOpen = expandedCats[cat.id];
-            const catQs  = questions.filter(q => q.cat === cat.id);
-            return (
-              <div key={cat.id} style={{ marginBottom:"8px", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"12px", overflow:"hidden" }}>
-                <div onClick={() => toggleCat(cat.id)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", cursor:"pointer" }}>
-                  <span style={{ fontSize:"13px", color:"#cbd5e1" }}>{cat.emoji} {cat.label}</span>
-                  <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                    <span style={{ color:bc, fontWeight:"bold", fontSize:"13px" }}>{s.toFixed(1)}</span>
-                    <span style={{ color:"#334155", fontSize:"12px", display:"inline-block", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s" }}>▾</span>
-                  </div>
+          <TypeComparison meter={meter} globalScore={globalScore} t={t}/>
+
+          <h3 style={{fontSize:"11px",letterSpacing:"3px",color:"#475569",textTransform:"uppercase",marginBottom:"12px"}}>{t.byCategory}</h3>
+          {cats.map(cat=>{
+            const s=getCategoryScore(cat.id,questions,answers);
+            if(s===null)return null;
+            const bc=s<3.5?"#60a5fa":s<6.5?"#fbbf24":"#e879f9";
+            const isOpen=expandedCats[cat.id];
+            const catQs=questions.filter(q=>q.cat===cat.id);
+            return(
+              <div key={cat.id} style={{marginBottom:"8px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"12px",overflow:"hidden"}}>
+                <div onClick={()=>toggleCat(cat.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",cursor:"pointer"}}>
+                  <span style={{fontSize:"13px",color:"#cbd5e1"}}>{cat.emoji} {cat.label}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}><span style={{color:bc,fontWeight:"bold",fontSize:"13px"}}>{s.toFixed(1)}</span><span style={{color:"#334155",fontSize:"12px",display:"inline-block",transform:isOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▾</span></div>
                 </div>
-                <div style={{ height:"3px", background:"rgba(255,255,255,0.04)", margin:"0 16px 10px" }}>
-                  <div style={{ height:"100%", width:`${(s/10)*100}%`, background:bc, borderRadius:"2px" }} />
-                </div>
-                {isOpen && (
-                  <div className="fade-in" style={{ borderTop:"1px solid rgba(255,255,255,0.05)", padding:"12px 16px 14px" }}>
-                    {catQs.map((q, qi) => {
-                      const ans = answers[q.id];
-                      const ansLabel = ans === 1 ? t.ansMore : ans === 0 ? t.ansLess : "–";
-                      const ansColor = ans === 1 ? MORE_CLR : ans === 0 ? LESS_CLR : "#475569";
-                      const dir = ans !== undefined ? getScoringDirection(q, ans, t) : null;
-                      return (
-                        <div key={q.id} style={{ marginBottom:qi<catQs.length-1?"14px":0, paddingBottom:qi<catQs.length-1?"14px":0, borderBottom:qi<catQs.length-1?"1px solid rgba(255,255,255,0.04)":"none" }}>
-                          <p style={{ fontSize:"12px", color:"#64748b", lineHeight:"1.5", fontStyle:"italic", marginBottom:"6px" }}>„{q.text}"</p>
-                          <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                            <span style={{ fontSize:"11px", fontWeight:"bold", color:ansColor, whiteSpace:"nowrap" }}>{ansLabel}</span>
-                            {dir && (
-                              <div style={{ display:"flex", alignItems:"center", gap:"6px", flex:1 }}>
-                                <div style={{ flex:1, height:"4px", borderRadius:"2px", background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)", position:"relative" }}>
-                                  <div style={{ position:"absolute", top:"-4px", left:dir.dir==="right"?"calc(70% - 6px)":"calc(30% - 6px)", width:"12px", height:"12px", background:dir.color, borderRadius:"50%", border:"2px solid #0d1b2e" }} />
-                                </div>
-                                <span style={{ fontSize:"10px", color:dir.color, whiteSpace:"nowrap" }}>{dir.label}</span>
-                              </div>
-                            )}
+                <div style={{height:"3px",background:"rgba(255,255,255,0.04)",margin:"0 16px 10px"}}><div style={{height:"100%",width:`${(s/10)*100}%`,background:bc,borderRadius:"2px"}}/></div>
+                {isOpen&&(
+                  <div className="fade-in" style={{borderTop:"1px solid rgba(255,255,255,0.05)",padding:"12px 16px 14px"}}>
+                    {catQs.map((q,qi)=>{
+                      const ans=answers[q.id];
+                      const ansLabel=ans===1?t.ansMore:ans===0?t.ansLess:"–";
+                      const ansColor=ans===1?MORE_CLR:ans===0?LESS_CLR:"#475569";
+                      const dir=ans!==undefined?getScoringDirection(q,ans,t):null;
+                      return(
+                        <div key={q.id} style={{marginBottom:qi<catQs.length-1?"14px":0,paddingBottom:qi<catQs.length-1?"14px":0,borderBottom:qi<catQs.length-1?"1px solid rgba(255,255,255,0.04)":"none"}}>
+                          <p style={{fontSize:"12px",color:"#64748b",lineHeight:"1.5",fontStyle:"italic",marginBottom:"6px"}}>„{q.text}"</p>
+                          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                            <span style={{fontSize:"11px",fontWeight:"bold",color:ansColor,whiteSpace:"nowrap"}}>{ansLabel}</span>
+                            {dir&&(<div style={{display:"flex",alignItems:"center",gap:"6px",flex:1}}><div style={{flex:1,height:"4px",borderRadius:"2px",background:"linear-gradient(to right,#60a5fa,#34d399,#fbbf24,#f97316,#e879f9)",position:"relative"}}><div style={{position:"absolute",top:"-4px",left:dir.dir==="right"?"calc(70% - 6px)":"calc(30% - 6px)",width:"12px",height:"12px",background:dir.color,borderRadius:"50%",border:"2px solid #0d1b2e"}}/></div><span style={{fontSize:"10px",color:dir.color,whiteSpace:"nowrap"}}>{dir.label}</span></div>)}
                           </div>
                         </div>
                       );
@@ -859,15 +570,9 @@ function App() {
             );
           })}
 
-          <div style={{ textAlign:"center", marginTop:"28px", paddingBottom:"24px", display:"flex", gap:"12px", justifyContent:"center" }}>
-            {lastAnswer && (
-              <button onClick={handleUndo} style={{ background:"transparent", color:ACCENT, border:`1px solid ${ACCENT}40`, borderRadius:"8px", padding:"10px 20px", fontSize:"13px", cursor:"pointer" }}>
-                {t.undoLastCorr}
-              </button>
-            )}
-            <button onClick={resetAll} style={{ background:"transparent", color:"#475569", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"8px", padding:"10px 24px", fontSize:"13px", cursor:"pointer" }}>
-              {t.again}
-            </button>
+          <div style={{textAlign:"center",marginTop:"28px",paddingBottom:"24px",display:"flex",gap:"12px",justifyContent:"center"}}>
+            {lastAnswer&&(<button onClick={handleUndo} style={{background:"transparent",color:ACCENT,border:`1px solid ${ACCENT}40`,borderRadius:"8px",padding:"10px 20px",fontSize:"13px",cursor:"pointer"}}>{t.undoLastCorr}</button>)}
+            <button onClick={resetAll} style={{background:"transparent",color:"#475569",border:"1px solid rgba(255,255,255,0.08)",borderRadius:"8px",padding:"10px 24px",fontSize:"13px",cursor:"pointer"}}>{t.again}</button>
           </div>
         </div>
       )}
@@ -875,8 +580,8 @@ function App() {
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
 </script>
 </body>
 </html>
